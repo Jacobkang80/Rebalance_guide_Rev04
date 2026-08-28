@@ -1,0 +1,355 @@
+name: Update Market Data
+
+on:
+schedule:
+# UTC 06:00 = 한국시간 15:00
+- cron: "0 6 * * 1-5"
+
+workflow_dispatch:
+
+permissions:
+contents: write
+
+jobs:
+
+update-market-data:
+
+runs-on: ubuntu-latest
+
+steps:
+
+  - name: Checkout repository
+    uses: actions/checkout@v4
+
+  - name: Setup Python
+    uses: actions/setup-python@v5
+    with:
+      python-version: "3.x"
+
+  - name: Install dependencies
+    run: |
+      pip install requests
+
+  - name: Download market data
+    run: |
+      python <<'PY'
+
+      import requests
+      import json
+      import math
+      from datetime import datetime, timezone
+
+      BASE = "https://query1.finance.yahoo.com/v8/finance/chart/"
+
+      headers = {
+          "User-Agent":
+          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/126 Safari/537.36"
+      }
+
+
+      # ============================================
+      # 관심종목
+      # ============================================
+
+      WATCHLIST = [
+          "NVDA",
+          "AAPL",
+          "005930.KS"
+      ]
+
+
+      INDICES = [
+          "^GSPC",
+          "^NDX",
+          "^KS11"
+      ]
+
+
+      # ============================================
+      # Yahoo Chart
+      # ============================================
+
+      def get_chart(symbol, interval="1d", range_="1y"):
+
+          url = (
+              BASE +
+              requests.utils.quote(symbol, safe="") +
+              "?interval=" +
+              interval +
+              "&range=" +
+              range_
+          )
+
+          r = requests.get(
+              url,
+              headers=headers,
+              timeout=20
+          )
+
+          r.raise_for_status()
+
+          data = r.json()
+
+          result = data["chart"]["result"][0]
+
+          timestamps = result.get(
+              "timestamp",
+              []
+          )
+
+          quote = result[
+              "indicators"
+          ][
+              "quote"
+          ][0]
+
+          closes = quote.get(
+              "close",
+              []
+          )
+
+          rows = []
+
+          for ts, close in zip(
+              timestamps,
+              closes
+          ):
+
+              if close is None:
+                  continue
+
+              rows.append({
+                  "timestamp": ts,
+                  "close": float(close)
+              })
+
+          meta = result.get(
+              "meta",
+              {}
+          )
+
+          price = meta.get(
+              "regularMarketPrice"
+          )
+
+          if price is None and rows:
+
+              price = rows[-1]["close"]
+
+          return {
+              "price":
+                  float(price)
+                  if price is not None
+                  else None,
+
+              "rows": rows
+          }
+
+
+      # ============================================
+      # BB
+      # ============================================
+
+      def bb(values, period=20, multiplier=2.5):
+
+          if len(values) < period:
+
+              return {
+                  "middle": None,
+                  "upper": None,
+                  "lower": None
+              }
+
+          arr = values[-period:]
+
+          mean = sum(arr) / len(arr)
+
+          variance = sum(
+              (x - mean) ** 2
+              for x in arr
+          ) / len(arr)
+
+          sd = math.sqrt(variance)
+
+          return {
+              "middle": mean,
+              "upper":
+                  mean +
+                  multiplier * sd,
+
+              "lower":
+                  mean -
+                  multiplier * sd
+          }
+
+
+      # ============================================
+      # 종목 하나
+      # ============================================
+
+      def build_symbol(symbol):
+
+          daily = get_chart(
+              symbol,
+              "1d",
+              "1y"
+          )
+
+          weekly = get_chart(
+              symbol,
+              "1wk",
+              "2y"
+          )
+
+          daily_values=[
+              x["close"]
+              for x in daily["rows"]
+          ]
+
+          weekly_values=[
+              x["close"]
+              for x in weekly["rows"]
+          ]
+
+          return {
+
+              "price":
+                  daily["price"],
+
+              "daily":
+                  bb(
+                      daily_values,
+                      20,
+                      2.5
+                  ),
+
+              "weekly":
+                  bb(
+                      weekly_values,
+                      20,
+                      2.5
+                  )
+          }
+
+
+      # ============================================
+      # VIX
+      # ============================================
+
+      vix_daily = get_chart(
+          "^VIX",
+          "1d",
+          "1y"
+      )
+
+      vix_history=[
+          x["close"]
+          for x in vix_daily["rows"]
+      ]
+
+
+      # ============================================
+      # 전체 데이터
+      # ============================================
+
+      output = {
+
+          "generatedAt":
+              datetime.now(
+                  timezone.utc
+              ).isoformat(),
+
+          "vix": {
+
+              "price":
+                  vix_daily["price"],
+
+              "history":
+                  vix_history[-60:]
+          },
+
+          "indices": {},
+
+          "stocks": {}
+      }
+
+
+      # 지수
+
+      for symbol in INDICES:
+
+          try:
+
+              output["indices"][symbol]=\
+                  build_symbol(symbol)
+
+          except Exception as e:
+
+              print(
+                  "INDEX ERROR",
+                  symbol,
+                  e
+              )
+
+
+      # 관심종목
+
+      for symbol in WATCHLIST:
+
+          try:
+
+              output["stocks"][symbol]=\
+                  build_symbol(symbol)
+
+          except Exception as e:
+
+              print(
+                  "STOCK ERROR",
+                  symbol,
+                  e
+              )
+
+
+      # ============================================
+      # JSON 저장
+      # ============================================
+
+      with open(
+          "market-data.json",
+          "w",
+          encoding="utf-8"
+      ) as f:
+
+          json.dump(
+              output,
+              f,
+              ensure_ascii=False,
+              indent=2
+          )
+
+
+      print(
+          json.dumps(
+              output,
+              ensure_ascii=False,
+              indent=2
+          )
+      )
+
+      PY
+
+  - name: Commit market data
+    run: |
+
+      git config user.name "github-actions[bot]"
+
+      git config user.email \
+        "41898282+github-actions[bot]@users.noreply.github.com"
+
+      git add market-data.json
+
+      git diff --cached --quiet || \
+        git commit \
+        -m "Update market data"
+
+      git push
