@@ -1,0 +1,3381 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Smart Rebalancing Pro</title>
+
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+
+<style>
+:root{
+    --bg:#08111f;
+    --card:#111d2e;
+    --card2:#0b1625;
+    --border:#26364b;
+
+    --text:#f8fafc;
+    --sub:#94a3b8;
+
+    --blue:#38bdf8;
+    --green:#22c55e;
+    --yellow:#f59e0b;
+    --orange:#f97316;
+    --red:#ef4444;
+    --purple:#a855f7;
+
+    --domestic:#3b82f6;
+    --overseas:#10b981;
+    --gold:#f59e0b;
+    --cash:#a855f7;
+}
+
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+    font-family:'Pretendard',
+    -apple-system,
+    BlinkMacSystemFont,
+    system-ui,
+    sans-serif;
+}
+
+body{
+    background:
+        radial-gradient(circle at 100% 0%,#172a46 0%,#08111f 42%);
+    color:var(--text);
+    max-width:760px;
+    margin:auto;
+    padding:18px 12px 50px;
+    line-height:1.5;
+}
+
+header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:18px;
+}
+
+.header-title{
+    font-size:1.35rem;
+    font-weight:900;
+}
+
+.header-sub{
+    color:var(--sub);
+    font-size:.72rem;
+    margin-top:2px;
+}
+
+.refresh-btn{
+    border:0;
+    border-radius:20px;
+    padding:9px 14px;
+    background:linear-gradient(135deg,#6366f1,#8b5cf6);
+    color:#fff;
+    font-size:.76rem;
+    font-weight:800;
+    cursor:pointer;
+    box-shadow:0 4px 15px rgba(99,102,241,.3);
+}
+
+.refresh-btn:disabled{
+    opacity:.5;
+}
+
+.card{
+    background:rgba(17,29,46,.96);
+    border:1px solid var(--border);
+    border-radius:17px;
+    padding:16px;
+    margin-bottom:14px;
+    box-shadow:0 8px 30px rgba(0,0,0,.16);
+}
+
+.card-title{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:.94rem;
+    font-weight:900;
+    margin-bottom:13px;
+}
+
+.sub{
+    color:var(--sub);
+    font-size:.68rem;
+    font-weight:500;
+}
+
+.section-note{
+    color:var(--sub);
+    font-size:.68rem;
+    margin-top:8px;
+}
+
+/* ===============================
+   MARKET
+================================ */
+
+.market-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:9px;
+}
+
+.metric{
+    background:var(--card2);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:12px;
+}
+
+.metric-label{
+    color:var(--sub);
+    font-size:.68rem;
+}
+
+.metric-value{
+    font-size:1.42rem;
+    font-weight:900;
+    margin-top:2px;
+}
+
+.metric-small{
+    color:var(--sub);
+    font-size:.63rem;
+}
+
+.alert{
+    margin-top:11px;
+    border-radius:12px;
+    padding:13px;
+}
+
+.alert.normal{
+    background:rgba(34,197,94,.09);
+    border:1px solid rgba(34,197,94,.3);
+}
+
+.alert.warning{
+    background:rgba(245,158,11,.09);
+    border:1px solid rgba(245,158,11,.3);
+}
+
+.alert.caution{
+    background:rgba(249,115,22,.10);
+    border:1px solid rgba(249,115,22,.35);
+}
+
+.alert.danger{
+    background:rgba(239,68,68,.11);
+    border:1px solid rgba(239,68,68,.4);
+}
+
+.alert-title{
+    font-size:.95rem;
+    font-weight:900;
+}
+
+.alert-desc{
+    color:#cbd5e1;
+    font-size:.74rem;
+    margin-top:3px;
+}
+
+.score-bar{
+    display:flex;
+    gap:4px;
+    margin-top:12px;
+}
+
+.score-dot{
+    flex:1;
+    height:7px;
+    border-radius:10px;
+    background:#26364b;
+}
+
+.score-dot.active{
+    background:var(--red);
+}
+
+.signal-list{
+    display:grid;
+    gap:6px;
+    margin-top:12px;
+}
+
+.signal{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    background:rgba(255,255,255,.025);
+    border-radius:8px;
+    padding:7px 9px;
+    font-size:.69rem;
+}
+
+.signal-name{
+    color:#cbd5e1;
+}
+
+.signal-value{
+    font-weight:800;
+}
+
+/* ===============================
+   TABLE
+================================ */
+
+.table-wrap{
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:.73rem;
+    min-width:650px;
+}
+
+th{
+    color:var(--sub);
+    font-size:.66rem;
+    font-weight:500;
+    white-space:nowrap;
+}
+
+th,td{
+    padding:9px 5px;
+    border-bottom:1px solid rgba(255,255,255,.05);
+}
+
+td{
+    font-weight:650;
+    white-space:nowrap;
+}
+
+.right{
+    text-align:right;
+}
+
+.price{
+    color:var(--blue);
+    font-weight:900;
+}
+
+.badge{
+    display:inline-block;
+    padding:3px 7px;
+    border-radius:8px;
+    font-size:.62rem;
+    font-weight:900;
+}
+
+.ok{
+    color:#4ade80;
+    background:rgba(34,197,94,.12);
+}
+
+.warn{
+    color:#fbbf24;
+    background:rgba(245,158,11,.13);
+}
+
+.caution{
+    color:#fb923c;
+    background:rgba(249,115,22,.13);
+}
+
+.hot{
+    color:#f87171;
+    background:rgba(239,68,68,.16);
+}
+
+.muted{
+    color:var(--sub);
+}
+
+.negative{
+    color:#4ade80;
+}
+
+.positive{
+    color:#f87171;
+}
+
+/* ===============================
+   BB
+================================ */
+
+.bb-near{
+    color:#fbbf24;
+    font-weight:900;
+}
+
+.bb-touch{
+    color:#f87171;
+    font-weight:900;
+}
+
+.bb-normal{
+    color:#4ade80;
+}
+
+.z-score{
+    font-size:.63rem;
+    color:var(--sub);
+}
+
+.info{
+    margin-top:10px;
+    padding:10px;
+    border-radius:9px;
+    background:rgba(255,255,255,.025);
+    color:var(--sub);
+    font-size:.68rem;
+    line-height:1.55;
+}
+
+.highlight{
+    color:#fff;
+    font-weight:800;
+}
+
+/* ===============================
+   SEARCH
+================================ */
+
+.search{
+    display:flex;
+    gap:7px;
+    margin-bottom:10px;
+}
+
+.search input{
+    flex:1;
+}
+
+input{
+    background:#091321;
+    border:1px solid var(--border);
+    color:#fff;
+    border-radius:7px;
+    padding:6px 8px;
+    font-weight:700;
+}
+
+.search button{
+    border:0;
+    background:#334155;
+    color:#fff;
+    border-radius:7px;
+    padding:0 14px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+/* ===============================
+   PORTFOLIO
+================================ */
+
+.mode-box{
+    padding:11px;
+    border-radius:10px;
+    background:rgba(255,255,255,.025);
+    margin-bottom:11px;
+}
+
+.mode-title{
+    font-weight:900;
+    font-size:.82rem;
+}
+
+.mode-desc{
+    color:var(--sub);
+    font-size:.68rem;
+    margin-top:2px;
+}
+
+.asset-input{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:10px;
+    background:var(--card2);
+    border:1px solid var(--border);
+    border-radius:10px;
+    margin-bottom:12px;
+    font-size:.76rem;
+}
+
+.asset-input input{
+    width:145px;
+    text-align:right;
+}
+
+.donut-area{
+    display:flex;
+    justify-content:space-around;
+    align-items:center;
+    margin:12px 0;
+}
+
+.donut-box{
+    text-align:center;
+}
+
+.donut-label{
+    color:var(--sub);
+    font-size:.68rem;
+    margin-bottom:6px;
+}
+
+.donut{
+    width:110px;
+    height:110px;
+    border-radius:50%;
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow:0 5px 18px rgba(0,0,0,.25);
+}
+
+.donut::after{
+    content:"";
+    width:61px;
+    height:61px;
+    border-radius:50%;
+    background:var(--card);
+    position:absolute;
+}
+
+.donut span{
+    position:relative;
+    z-index:2;
+    font-size:.62rem;
+    font-weight:900;
+    text-align:center;
+}
+
+.legend{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:6px;
+    font-size:.67rem;
+    color:#cbd5e1;
+    margin-bottom:10px;
+}
+
+.dot{
+    display:inline-block;
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    margin-right:5px;
+}
+
+.total-check{
+    font-size:.68rem;
+    margin-bottom:9px;
+}
+
+.rebalance-buy{
+    color:#4ade80;
+    font-weight:900;
+}
+
+.rebalance-sell{
+    color:#f87171;
+    font-weight:900;
+}
+
+.rebalance-none{
+    color:var(--sub);
+}
+
+/* ===============================
+   FOOTER
+================================ */
+
+.timestamp{
+    text-align:right;
+    color:#64748b;
+    font-size:.62rem;
+    margin-top:4px;
+}
+
+.loading{
+    opacity:.55;
+}
+
+@media(max-width:480px){
+
+    body{
+        padding:14px 8px 40px;
+    }
+
+    .card{
+        padding:13px;
+    }
+
+    .header-title{
+        font-size:1.15rem;
+    }
+
+    .refresh-btn{
+        padding:8px 10px;
+    }
+
+}
+</style>
+</head>
+
+
+<body>
+
+<header>
+
+<div>
+    <div class="header-title">⚡ Smart Rebalancing Pro</div>
+    <div class="header-sub">
+        고점 과열 · BB(2.5σ) · PER · 5단계 리밸런싱
+    </div>
+</div>
+
+<button
+    id="refresh-btn"
+    class="refresh-btn"
+    onclick="fetchAllData()">
+    ↻ 갱신
+</button>
+
+</header>
+
+
+<!-- ==================================================
+     1. MARKET HEAT
+================================================== -->
+
+<div class="card">
+
+<div class="card-title">
+
+    🔥 시장 과열 레이더
+
+    <span id="api-status" class="sub">
+        조회 대기
+    </span>
+
+</div>
+
+
+<div class="market-grid">
+
+<div class="metric">
+
+    <div class="metric-label">
+        VIX
+    </div>
+
+    <div id="vix-value" class="metric-value">
+        --
+    </div>
+
+    <div id="vix-status" class="metric-small">
+        데이터 대기
+    </div>
+
+</div>
+
+
+<div class="metric">
+
+    <div class="metric-label">
+        종합 과열점수
+    </div>
+
+    <div id="heat-score" class="metric-value">
+        0 / 5
+    </div>
+
+    <div id="heat-level" class="metric-small">
+        정상
+    </div>
+
+</div>
+
+</div>
+
+
+<div class="score-bar" id="score-bar">
+
+    <div class="score-dot"></div>
+    <div class="score-dot"></div>
+    <div class="score-dot"></div>
+    <div class="score-dot"></div>
+    <div class="score-dot"></div>
+
+</div>
+
+
+<div id="market-alert" class="alert normal">
+
+    <div id="alert-title" class="alert-title">
+        🟢 정상
+    </div>
+
+    <div id="alert-desc" class="alert-desc">
+        데이터를 불러오는 중입니다.
+    </div>
+
+</div>
+
+
+<div class="signal-list">
+
+<div class="signal">
+    <span class="signal-name">VIX 저변동성</span>
+    <span id="signal-vix" class="signal-value muted">--</span>
+</div>
+
+<div class="signal">
+    <span class="signal-name">S&P 500 BB</span>
+    <span id="signal-sp" class="signal-value muted">--</span>
+</div>
+
+<div class="signal">
+    <span class="signal-name">Nasdaq 100 BB</span>
+    <span id="signal-ndx" class="signal-value muted">--</span>
+</div>
+
+<div class="signal">
+    <span class="signal-name">KOSPI BB</span>
+    <span id="signal-kospi" class="signal-value muted">--</span>
+</div>
+
+<div class="signal">
+    <span class="signal-name">밸류에이션</span>
+    <span id="signal-per" class="signal-value muted">--</span>
+</div>
+
+</div>
+
+
+<div class="info">
+
+<strong class="highlight">
+과열점수 0~5
+</strong><br>
+
+① VIX &lt;14 또는 14~14.5 구간 5일 연속 = +1<br>
+② S&P500 일봉/주봉 BB(2.5σ) 상단 = +1<br>
+③ Nasdaq100 일봉/주봉 BB(2.5σ) 상단 = +1<br>
+④ KOSPI 일봉/주봉 BB(2.5σ) 상단 = +1<br>
+⑤ 주요 지수 PER이 3년 평균보다 10% 이상 높음 = +1
+
+</div>
+
+</div>
+
+
+<!-- ==================================================
+     2. INDEX BB
+================================================== -->
+
+<div class="card">
+
+<div class="card-title">
+
+📈 주요 지수 BB(2.5σ)
+
+<span id="index-touch-count" class="sub">
+0 / 6
+</span>
+
+</div>
+
+
+<div class="table-wrap">
+
+<table>
+
+<thead>
+
+<tr>
+<th>지수</th>
+<th class="right">현재가</th>
+<th class="right">일봉 상단</th>
+<th class="right">주봉 상단</th>
+<th class="right">일봉 괴리</th>
+<th class="right">주봉 괴리</th>
+<th class="right">상태</th>
+</tr>
+
+</thead>
+
+<tbody id="index-body"></tbody>
+
+</table>
+
+</div>
+
+
+<div class="info">
+
+현재가는 <strong class="highlight">실시간/지연 시장가격</strong>,
+BB는 <strong class="highlight">일봉 종가 및 실제 주봉 종가</strong>를 사용합니다.
+
+<br><br>
+
+괴리율이
+
+<strong class="highlight">0% 이상</strong>이면 BB 상단 터치,
+<strong class="highlight">-1% 이내</strong>이면 상단 접근,
+그보다 낮으면 정상으로 분류합니다.
+
+</div>
+
+</div>
+
+
+<!-- ==================================================
+     3. STOCK BB
+================================================== -->
+
+<div class="card">
+
+<div class="card-title">
+
+⭐ 관심 종목 BB(2.5σ)
+
+<span class="sub">
+종목별 과열도
+</span>
+
+</div>
+
+
+<div class="search">
+
+<input
+id="ticker-input"
+placeholder="예: 005930.KS / 000660.KS / NVDA"
+/>
+
+<button onclick="addTicker()">
++ 추가
+</button>
+
+</div>
+
+
+<div class="table-wrap">
+
+<table>
+
+<thead>
+
+<tr>
+<th>종목</th>
+<th class="right">현재가</th>
+<th class="right">일봉 상단</th>
+<th class="right">주봉 상단</th>
+<th class="right">일봉 괴리</th>
+<th class="right">주봉 괴리</th>
+<th class="right">Z</th>
+<th></th>
+</tr>
+
+</thead>
+
+<tbody id="stock-body"></tbody>
+
+</table>
+
+</div>
+
+
+<div class="info">
+
+<strong class="highlight">
+Z-score
+</strong>는 현재가가 최근 20기간 평균에서
+몇 표준편차 떨어져 있는지를 나타냅니다.
+
+<br>
+
+일반적으로 Z ≥ 2.5는
+통계적으로 상당히 높은 가격 영역입니다.
+
+</div>
+
+</div>
+
+
+<!-- ==================================================
+     4. PER
+================================================== -->
+
+<div class="card">
+
+<div class="card-title">
+
+📊 지수 밸류에이션
+
+<span class="sub">
+현재 PER vs 과거 평균
+</span>
+
+</div>
+
+
+<div class="table-wrap">
+
+<table>
+
+<thead>
+
+<tr>
+<th>지수</th>
+<th class="right">현재 PER</th>
+<th class="right">Forward PER</th>
+<th class="right">3Y 평균</th>
+<th class="right">평균 대비</th>
+<th class="right">Forward 괴리</th>
+</tr>
+
+</thead>
+
+<tbody id="per-body"></tbody>
+
+</table>
+
+</div>
+
+
+<div class="info">
+
+Forward PER과 현재 PER의 차이를
+<strong class="highlight">EPS 성장률로 해석하지 않습니다.</strong>
+
+이는 현재 이익과 향후 예상 이익을 기준으로 한
+<strong class="highlight">밸류에이션 압축 가능성</strong>을 보여주는 지표입니다.
+
+<br><br>
+
+※ PER 값은 데이터 제공처와 기준일에 따라 달라질 수 있으므로
+실전 매매 전 최신 컨센서스 확인이 필요합니다.
+
+</div>
+
+</div>
+
+
+<!-- ==================================================
+     5. REBALANCING
+================================================== -->
+
+<div class="card">
+
+<div class="card-title">
+
+🎯 스마트 리밸런싱
+
+<span id="mode-tag" class="sub">
+🟢 정상 모드
+</span>
+
+</div>
+
+
+<div id="mode-box" class="mode-box">
+
+<div id="mode-title" class="mode-title">
+🟢 정상 모드
+</div>
+
+<div id="mode-desc" class="mode-desc">
+성장자산 중심의 기본 포트폴리오를 유지합니다.
+</div>
+
+</div>
+
+
+<div class="asset-input">
+
+<strong>
+총 평가자산
+</strong>
+
+<div>
+
+<input
+id="total-asset"
+type="number"
+value="100000000"
+step="1000000"
+oninput="calculateRebalance()"
+/>
+
+원
+
+</div>
+
+</div>
+
+
+<div class="donut-area">
+
+<div class="donut-box">
+
+<div class="donut-label">
+현재 비중
+</div>
+
+<div id="current-donut" class="donut">
+
+<span>
+CURRENT<br>
+PORTFOLIO
+</span>
+
+</div>
+
+</div>
+
+
+<div class="donut-box">
+
+<div class="donut-label">
+추천 목표
+</div>
+
+<div id="target-donut" class="donut">
+
+<span>
+TARGET<br>
+PORTFOLIO
+</span>
+
+</div>
+
+</div>
+
+</div>
+
+
+<div id="portfolio-total"
+class="total-check">
+현재 비중 합계: 100%
+</div>
+
+
+<div class="legend">
+
+<div>
+<span class="dot"
+style="background:var(--domestic)">
+</span>
+국내주식
+</div>
+
+<div>
+<span class="dot"
+style="background:var(--overseas)">
+</span>
+해외주식
+</div>
+
+<div>
+<span class="dot"
+style="background:var(--gold)">
+</span>
+금
+</div>
+
+<div>
+<span class="dot"
+style="background:var(--cash)">
+</span>
+달러/현금
+</div>
+
+</div>
+
+
+<div class="table-wrap">
+
+<table>
+
+<thead>
+
+<tr>
+<th>자산군</th>
+<th class="right">현재%</th>
+<th class="right">목표%</th>
+<th class="right">현재금액</th>
+<th class="right">목표금액</th>
+<th class="right">조정</th>
+</tr>
+
+</thead>
+
+<tbody id="rebalance-body"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+
+<div id="timestamp" class="timestamp">
+마지막 갱신: -
+</div>
+
+
+<script>
+
+/* ==========================================================
+   DATA
+========================================================== */
+
+const marketData = {
+
+    "^GSPC":{
+        name:"S&P 500",
+        price:0,
+        history:[],
+        daily:null,
+        weekly:null,
+        success:false
+    },
+
+    "^NDX":{
+        name:"Nasdaq 100",
+        price:0,
+        history:[],
+        daily:null,
+        weekly:null,
+        success:false
+    },
+
+    "^KS11":{
+        name:"KOSPI",
+        price:0,
+        history:[],
+        daily:null,
+        weekly:null,
+        success:false
+    }
+
+};
+
+
+const stockData = {
+
+    "005930.KS":{
+        name:"삼성전자",
+        price:0,
+        history:[],
+        daily:null,
+        weekly:null,
+        success:false
+    },
+
+    "000660.KS":{
+        name:"SK하이닉스",
+        price:0,
+        history:[],
+        daily:null,
+        weekly:null,
+        success:false
+    },
+
+    "NVDA":{
+        name:"NVIDIA",
+        price:0,
+        history:[],
+        daily:null,
+        weekly:null,
+        success:false
+    },
+
+    "AAPL":{
+        name:"Apple",
+        price:0,
+        history:[],
+        daily:null,
+        weekly:null,
+        success:false
+    }
+
+};
+
+
+/* ==========================================================
+   PER
+========================================================== */
+
+const perData = {
+
+    sp500:{
+        name:"S&P 500",
+        curr:26.2,
+        fwd:22.5,
+        avg:24.5
+    },
+
+    nasdaq:{
+        name:"Nasdaq 100",
+        curr:28.4,
+        fwd:24.2,
+        avg:28.0
+    },
+
+    kospi:{
+        name:"KOSPI 200",
+        curr:10.6,
+        fwd:9.8,
+        avg:11.2
+    }
+
+};
+
+
+/* ==========================================================
+   PORTFOLIO
+========================================================== */
+
+const portfolio = [
+
+    {
+        key:"domestic",
+        name:"국내주식",
+        current:35,
+        target:35,
+        color:"#3b82f6"
+    },
+
+    {
+        key:"overseas",
+        name:"해외주식",
+        current:45,
+        target:45,
+        color:"#10b981"
+    },
+
+    {
+        key:"gold",
+        name:"금",
+        current:10,
+        target:10,
+        color:"#f59e0b"
+    },
+
+    {
+        key:"cash",
+        name:"달러/현금",
+        current:10,
+        target:10,
+        color:"#a855f7"
+    }
+
+];
+
+
+/* ==========================================================
+   5 STAGE PROFILE
+========================================================== */
+
+const profiles = {
+
+    normal:{
+        name:"🟢 정상",
+        desc:"시장 과열 신호가 제한적입니다. 성장자산 중심의 기본 포트폴리오를 유지합니다.",
+        domestic:35,
+        overseas:45,
+        gold:10,
+        cash:10
+    },
+
+    warning:{
+        name:"🟡 주의",
+        desc:"일부 과열 신호가 확인됩니다. 신규 매수 속도를 낮추고 현금 비중을 조금 확보합니다.",
+        domestic:32,
+        overseas:40,
+        gold:13,
+        cash:15
+    },
+
+    caution:{
+        name:"🟠 경계",
+        desc:"복수의 과열 신호가 발생했습니다. 일부 주식 비중을 줄이고 방어자산을 확대합니다.",
+        domestic:28,
+        overseas:35,
+        gold:17,
+        cash:20
+    },
+
+    danger:{
+        name:"🔴 과열",
+        desc:"시장 고점 위험이 상당히 높습니다. 주식 일부 차익실현을 고려합니다.",
+        domestic:23,
+        overseas:30,
+        gold:22,
+        cash:25
+    },
+
+    extreme:{
+        name:"🚨 강한 과열",
+        desc:"다수의 고점 신호가 동시에 발생했습니다. 공격적 포트폴리오를 방어적으로 전환합니다.",
+        domestic:20,
+        overseas:25,
+        gold:25,
+        cash:30
+    }
+
+};
+
+
+/* ==========================================================
+   VIX
+========================================================== */
+
+let vixValue = 0;
+let vixHistory = [];
+
+
+/* ==========================================================
+   BB
+========================================================== */
+
+function calculateBB(
+    values,
+    period=20,
+    multiplier=2.5
+){
+
+    if(
+        !values ||
+        values.length < period
+    ){
+
+        return null;
+
+    }
+
+
+    const data =
+        values.slice(-period);
+
+
+    const mean =
+        data.reduce(
+            (a,b)=>a+b,
+            0
+        ) / period;
+
+
+    const variance =
+        data.reduce(
+            (sum,x)=>
+                sum +
+                Math.pow(x-mean,2),
+            0
+        ) / period;
+
+
+    const sd =
+        Math.sqrt(variance);
+
+
+    return {
+
+        middle:mean,
+
+        upper:
+            mean +
+            multiplier*sd,
+
+        lower:
+            mean -
+            multiplier*sd,
+
+        sd:sd
+
+    };
+
+}
+
+
+/* ==========================================================
+   ACTUAL WEEKLY CLOSE
+========================================================== */
+
+function dailyToWeekly(records){
+
+    const weeks = {};
+
+    records.forEach(record=>{
+
+        const date =
+            new Date(record.date);
+
+        /*
+         * 해당 날짜의 월요일을 계산
+         */
+
+        const d =
+            new Date(
+                date.getFullYear(),
+                date.getMonth(),
+                date.getDate()
+            );
+
+
+        const day =
+            d.getDay();
+
+
+        const diff =
+            day === 0
+            ? -6
+            : 1-day;
+
+
+        d.setDate(
+            d.getDate()+diff
+        );
+
+
+        const key =
+            d.getFullYear() +
+            "-" +
+            String(d.getMonth()+1).padStart(2,"0") +
+            "-" +
+            String(d.getDate()).padStart(2,"0");
+
+
+        /*
+         * 같은 주의 마지막 거래일 종가가
+         * 계속 덮어써지므로 최종적으로 금요일 종가
+         */
+
+        weeks[key] =
+            record.close;
+
+    });
+
+
+    return Object.values(weeks);
+
+}
+
+
+/* ==========================================================
+   YAHOO FINANCE
+========================================================== */
+
+async function fetchYahooData(symbol){
+
+    const targetUrl =
+        `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1y`;
+
+
+    const proxies = [
+
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
+
+        `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`
+
+    ];
+
+
+    for(
+        const proxy of proxies
+    ){
+
+        try{
+
+            const response =
+                await fetch(
+                    proxy,
+                    {
+                        cache:"no-store"
+                    }
+                );
+
+
+            if(!response.ok)
+                continue;
+
+
+            const json =
+                await response.json();
+
+
+            if(
+                !json.chart ||
+                !json.chart.result ||
+                !json.chart.result[0]
+            ){
+
+                continue;
+
+            }
+
+
+            const result =
+                json.chart.result[0];
+
+
+            const quote =
+                result.indicators.quote[0];
+
+
+            const timestamps =
+                result.timestamp || [];
+
+
+            const records = [];
+
+
+            for(
+                let i=0;
+                i<timestamps.length;
+                i++
+            ){
+
+                const close =
+                    quote.close[i];
+
+
+                if(
+                    close !== null &&
+                    close !== undefined
+                ){
+
+                    records.push({
+
+                        date:
+                            new Date(
+                                timestamps[i]*1000
+                            ),
+
+                        close:
+                            Number(close)
+
+                    });
+
+                }
+
+            }
+
+
+            if(records.length<20)
+                continue;
+
+
+            const history =
+                records.map(
+                    x=>x.close
+                );
+
+
+            /*
+             * 화면 현재가
+             */
+
+            const currentPrice =
+                Number(
+                    result.meta.regularMarketPrice
+                ) ||
+                records[records.length-1].close;
+
+
+            /*
+             * 일봉 BB
+             */
+
+            const dailyBB =
+                calculateBB(
+                    history,
+                    20,
+                    2.5
+                );
+
+
+            /*
+             * 실제 주봉 종가
+             */
+
+            const weeklyHistory =
+                dailyToWeekly(records);
+
+
+            const weeklyBB =
+                calculateBB(
+                    weeklyHistory,
+                    20,
+                    2.5
+                );
+
+
+            return {
+
+                success:true,
+
+                price:currentPrice,
+
+                history:history,
+
+                weeklyHistory:weeklyHistory,
+
+                daily:dailyBB,
+
+                weekly:weeklyBB
+
+            };
+
+
+        }
+        catch(error){
+
+            console.warn(
+                "Fetch failed:",
+                symbol,
+                error
+            );
+
+        }
+
+    }
+
+
+    return {
+        success:false
+    };
+
+}
+
+
+/* ==========================================================
+   TOUCH / DISTANCE
+========================================================== */
+
+function isTouch(
+    price,
+    bb
+){
+
+    if(
+        !bb ||
+        !price
+    )
+        return false;
+
+
+    return price >= bb.upper;
+
+}
+
+
+function distanceToBB(
+    price,
+    bb
+){
+
+    if(
+        !bb ||
+        !price
+    )
+        return null;
+
+
+    return(
+        (price / bb.upper - 1)
+        *100
+    );
+
+}
+
+
+function calculateZ(
+    price,
+    bb
+){
+
+    if(
+        !bb ||
+        !bb.sd ||
+        !price
+    )
+        return null;
+
+
+    return(
+        (price-bb.middle)
+        /bb.sd
+    );
+
+}
+
+
+/* ==========================================================
+   VIX 5 DAY
+========================================================== */
+
+function vixFiveDayCondition(){
+
+    if(
+        vixHistory.length<5
+    )
+        return false;
+
+
+    const last5 =
+        vixHistory.slice(-5);
+
+
+    return last5.every(
+        value =>
+            value >= 14 &&
+            value <= 14.5
+    );
+
+}
+
+
+/* ==========================================================
+   FORMAT
+========================================================== */
+
+function formatIndex(
+    value
+){
+
+    if(
+        value === null ||
+        value === undefined ||
+        !isFinite(value)
+    )
+        return "-";
+
+
+    return Number(value)
+        .toLocaleString(
+            undefined,
+            {
+                minimumFractionDigits:2,
+                maximumFractionDigits:2
+            }
+        );
+
+}
+
+
+function formatStock(
+    ticker,
+    value
+){
+
+    if(
+        value === null ||
+        value === undefined ||
+        !isFinite(value)
+    )
+        return "-";
+
+
+    if(
+        ticker.endsWith(".KS")
+    ){
+
+        return Math.round(value)
+            .toLocaleString()+"원";
+
+    }
+
+
+    return "$"+
+        Number(value)
+        .toLocaleString(
+            undefined,
+            {
+                minimumFractionDigits:2,
+                maximumFractionDigits:2
+            }
+        );
+
+}
+
+
+function formatWon(
+    value
+){
+
+    const abs =
+        Math.abs(value);
+
+
+    if(
+        abs >= 100000000
+    ){
+
+        return(
+            (value/100000000)
+            .toFixed(1)
+            +"억원"
+        );
+
+    }
+
+
+    if(
+        abs >= 10000
+    ){
+
+        return(
+            Math.round(value/10000)
+            .toLocaleString()
+            +"만원"
+        );
+
+    }
+
+
+    return(
+        Math.round(value)
+        .toLocaleString()
+        +"원"
+    );
+
+}
+
+
+/* ==========================================================
+   RENDER INDEX
+========================================================== */
+
+function renderIndexes(){
+
+    const tbody =
+        document.getElementById(
+            "index-body"
+        );
+
+
+    tbody.innerHTML="";
+
+
+    let touchCount=0;
+
+
+    Object.values(
+        marketData
+    ).forEach(item=>{
+
+        if(!item.success){
+
+            const tr =
+                document.createElement("tr");
+
+            tr.innerHTML=`
+
+<td>${item.name}</td>
+<td colspan="6"
+class="right muted">
+데이터 없음
+</td>
+
+`;
+
+            tbody.appendChild(tr);
+
+            return;
+
+        }
+
+
+        const dailyTouch =
+            isTouch(
+                item.price,
+                item.daily
+            );
+
+
+        const weeklyTouch =
+            isTouch(
+                item.price,
+                item.weekly
+            );
+
+
+        if(dailyTouch)
+            touchCount++;
+
+
+        if(weeklyTouch)
+            touchCount++;
+
+
+        const dailyDistance =
+            distanceToBB(
+                item.price,
+                item.daily
+            );
+
+
+        const weeklyDistance =
+            distanceToBB(
+                item.price,
+                item.weekly
+            );
+
+
+        let status;
+
+
+        if(
+            dailyTouch ||
+            weeklyTouch
+        ){
+
+            status =
+                `<span class="badge hot">🔴 터치</span>`;
+
+        }
+        else if(
+            (
+                dailyDistance !== null &&
+                dailyDistance >= -1
+            ) ||
+            (
+                weeklyDistance !== null &&
+                weeklyDistance >= -1
+            )
+        ){
+
+            status =
+                `<span class="badge warn">🟡 접근</span>`;
+
+        }
+        else{
+
+            status =
+                `<span class="badge ok">🟢 정상</span>`;
+
+        }
+
+
+        const tr =
+            document.createElement("tr");
+
+
+        tr.innerHTML=`
+
+<td>
+<strong>${item.name}</strong>
+</td>
+
+
+<td class="right price">
+${formatIndex(item.price)}
+</td>
+
+
+<td class="right">
+
+${formatIndex(
+    item.daily?.upper
+)}
+
+<br>
+
+<span class="${
+    dailyDistance !== null &&
+    dailyDistance >= 0
+    ? "bb-touch"
+    :
+    dailyDistance !== null &&
+    dailyDistance >= -1
+    ? "bb-near"
+    :
+    "muted"
+}">
+
+${
+    dailyDistance !== null
+    ? dailyDistance.toFixed(2)+"%"
+    : "-"
+}
+
+</span>
+
+</td>
+
+
+<td class="right">
+
+${formatIndex(
+    item.weekly?.upper
+)}
+
+<br>
+
+<span class="${
+    weeklyDistance !== null &&
+    weeklyDistance >= 0
+    ? "bb-touch"
+    :
+    weeklyDistance !== null &&
+    weeklyDistance >= -1
+    ? "bb-near"
+    :
+    "muted"
+}">
+
+${
+    weeklyDistance !== null
+    ? weeklyDistance.toFixed(2)+"%"
+    : "-"
+}
+
+</span>
+
+</td>
+
+
+<td class="right">
+
+${
+    dailyDistance !== null
+    ? dailyDistance.toFixed(2)+"%"
+    : "-"
+}
+
+</td>
+
+
+<td class="right">
+
+${
+    weeklyDistance !== null
+    ? weeklyDistance.toFixed(2)+"%"
+    : "-"
+}
+
+</td>
+
+
+<td class="right">
+${status}
+</td>
+
+`;
+
+        tbody.appendChild(tr);
+
+    });
+
+
+    document.getElementById(
+        "index-touch-count"
+    ).innerText =
+        `${touchCount} / 6`;
+
+}
+
+
+/* ==========================================================
+   RENDER STOCK
+========================================================== */
+
+function renderStocks(){
+
+    const tbody =
+        document.getElementById(
+            "stock-body"
+        );
+
+
+    tbody.innerHTML="";
+
+
+    Object.entries(
+        stockData
+    ).forEach(
+        ([ticker,item])=>{
+
+            if(!item.success){
+
+                const tr =
+                    document.createElement("tr");
+
+
+                tr.innerHTML=`
+
+<td>
+<strong>${item.name}</strong>
+<br>
+<span class="muted">
+${ticker}
+</span>
+</td>
+
+<td colspan="6"
+class="right muted">
+데이터 없음
+</td>
+
+<td class="right">
+
+<button
+onclick="removeTicker('${ticker}')"
+style="
+background:none;
+border:0;
+color:#64748b;
+cursor:pointer;
+">
+✕
+</button>
+
+</td>
+
+`;
+
+                tbody.appendChild(tr);
+
+                return;
+
+            }
+
+
+            const dailyDistance =
+                distanceToBB(
+                    item.price,
+                    item.daily
+                );
+
+
+            const weeklyDistance =
+                distanceToBB(
+                    item.price,
+                    item.weekly
+                );
+
+
+            const z =
+                calculateZ(
+                    item.price,
+                    item.daily
+                );
+
+
+            const dailyTouch =
+                isTouch(
+                    item.price,
+                    item.daily
+                );
+
+
+            const weeklyTouch =
+                isTouch(
+                    item.price,
+                    item.weekly
+                );
+
+
+            let statusClass="ok";
+
+
+            if(
+                dailyTouch ||
+                weeklyTouch
+            ){
+
+                statusClass="hot";
+
+            }
+            else if(
+                (
+                    dailyDistance !== null &&
+                    dailyDistance >= -1
+                ) ||
+                (
+                    weeklyDistance !== null &&
+                    weeklyDistance >= -1
+                )
+            ){
+
+                statusClass="warn";
+
+            }
+
+
+            const tr =
+                document.createElement("tr");
+
+
+            tr.innerHTML=`
+
+<td>
+
+<strong>
+${item.name}
+</strong>
+
+<br>
+
+<span class="muted">
+${ticker}
+</span>
+
+</td>
+
+
+<td class="right price">
+
+${formatStock(
+    ticker,
+    item.price
+)}
+
+</td>
+
+
+<td class="right">
+
+${formatStock(
+    ticker,
+    item.daily?.upper
+)}
+
+<br>
+
+<span class="${
+    dailyDistance >= 0
+    ? "bb-touch"
+    :
+    dailyDistance >= -1
+    ? "bb-near"
+    :
+    "muted"
+}">
+
+${
+    dailyDistance !== null
+    ? dailyDistance.toFixed(2)+"%"
+    : "-"
+}
+
+</span>
+
+</td>
+
+
+<td class="right">
+
+${formatStock(
+    ticker,
+    item.weekly?.upper
+)}
+
+<br>
+
+<span class="${
+    weeklyDistance >= 0
+    ? "bb-touch"
+    :
+    weeklyDistance >= -1
+    ? "bb-near"
+    :
+    "muted"
+}">
+
+${
+    weeklyDistance !== null
+    ? weeklyDistance.toFixed(2)+"%"
+    : "-"
+}
+
+</span>
+
+</td>
+
+
+<td class="right">
+
+${
+    dailyDistance !== null
+    ? dailyDistance.toFixed(2)+"%"
+    : "-"
+}
+
+</td>
+
+
+<td class="right">
+
+${
+    weeklyDistance !== null
+    ? weeklyDistance.toFixed(2)+"%"
+    : "-"
+}
+
+</td>
+
+
+<td class="right">
+
+${
+    z !== null
+    ? z.toFixed(2)+"σ"
+    : "-"
+}
+
+</td>
+
+
+<td class="right">
+
+<span class="badge ${statusClass}">
+
+${
+    statusClass==="hot"
+    ? "🔴 과열"
+    :
+    statusClass==="warn"
+    ? "🟡 접근"
+    :
+    "🟢 정상"
+}
+
+</span>
+
+<br>
+
+<button
+onclick="removeTicker('${ticker}')"
+style="
+background:none;
+border:0;
+color:#64748b;
+cursor:pointer;
+margin-top:4px;
+">
+
+✕
+
+</button>
+
+</td>
+
+`;
+
+            tbody.appendChild(tr);
+
+        }
+    );
+
+}
+
+
+/* ==========================================================
+   PER
+========================================================== */
+
+function renderPER(){
+
+    const tbody =
+        document.getElementById(
+            "per-body"
+        );
+
+
+    tbody.innerHTML="";
+
+
+    Object.values(
+        perData
+    ).forEach(item=>{
+
+        const gap =
+            (
+                item.curr /
+                item.avg -
+                1
+            )*100;
+
+
+        const forwardGap =
+            (
+                item.curr /
+                item.fwd -
+                1
+            )*100;
+
+
+        const tr =
+            document.createElement("tr");
+
+
+        tr.innerHTML=`
+
+<td>
+<strong>${item.name}</strong>
+</td>
+
+
+<td class="right">
+${item.curr.toFixed(1)}x
+</td>
+
+
+<td class="right price">
+${item.fwd.toFixed(1)}x
+</td>
+
+
+<td class="right">
+${item.avg.toFixed(1)}x
+</td>
+
+
+<td class="right">
+
+<span class="${
+    gap > 0
+    ? "positive"
+    : "negative"
+}">
+
+${gap>0?"+":""}
+${gap.toFixed(1)}%
+
+</span>
+
+</td>
+
+
+<td class="right">
+
+<span class="${
+    forwardGap > 10
+    ? "positive"
+    : "muted"
+}">
+
+${forwardGap>0?"+":""}
+${forwardGap.toFixed(1)}%
+
+</span>
+
+</td>
+
+`;
+
+        tbody.appendChild(tr);
+
+    });
+
+}
+
+
+/* ==========================================================
+   HEAT SCORE
+========================================================== */
+
+function calculateHeatScore(){
+
+    let score=0;
+
+
+    /*
+     * 1. VIX
+     */
+
+    const vixSignal =
+        (
+            vixValue > 0 &&
+            vixValue < 14
+        ) ||
+        vixFiveDayCondition();
+
+
+    if(vixSignal)
+        score++;
+
+
+    /*
+     * 2. S&P
+     */
+
+    const sp =
+        marketData["^GSPC"];
+
+
+    const spSignal =
+        isTouch(sp.price,sp.daily) ||
+        isTouch(sp.price,sp.weekly);
+
+
+    if(spSignal)
+        score++;
+
+
+    /*
+     * 3. Nasdaq
+     */
+
+    const ndx =
+        marketData["^NDX"];
+
+
+    const ndxSignal =
+        isTouch(ndx.price,ndx.daily) ||
+        isTouch(ndx.price,ndx.weekly);
+
+
+    if(ndxSignal)
+        score++;
+
+
+    /*
+     * 4. KOSPI
+     */
+
+    const kospi =
+        marketData["^KS11"];
+
+
+    const kospiSignal =
+        isTouch(kospi.price,kospi.daily) ||
+        isTouch(kospi.price,kospi.weekly);
+
+
+    if(kospiSignal)
+        score++;
+
+
+    /*
+     * 5. Valuation
+     */
+
+    const valuationSignal =
+        Object.values(perData)
+        .some(
+            item =>
+                item.curr >
+                item.avg*1.10
+        );
+
+
+    if(valuationSignal)
+        score++;
+
+
+    return {
+
+        score,
+
+        vixSignal,
+
+        spSignal,
+
+        ndxSignal,
+
+        kospiSignal,
+
+        valuationSignal
+
+    };
+
+}
+
+
+/* ==========================================================
+   UPDATE MARKET UI
+========================================================== */
+
+function updateMarket(){
+
+    const result =
+        calculateHeatScore();
+
+
+    const score =
+        result.score;
+
+
+    document.getElementById(
+        "heat-score"
+    ).innerText =
+        `${score} / 5`;
+
+
+    document.getElementById(
+        "vix-value"
+    ).innerText =
+        vixValue
+        ? vixValue.toFixed(2)
+        : "--";
+
+
+    /*
+     * Score bar
+     */
+
+    const dots =
+        document.querySelectorAll(
+            ".score-dot"
+        );
+
+
+    dots.forEach(
+        (dot,index)=>{
+
+            dot.classList.toggle(
+                "active",
+                index < score
+            );
+
+        }
+    );
+
+
+    /*
+     * Signal UI
+     */
+
+    setSignal(
+        "signal-vix",
+        result.vixSignal,
+        result.vixSignal
+        ? "🔴 감지"
+        : "🟢 정상"
+    );
+
+
+    setSignal(
+        "signal-sp",
+        result.spSignal,
+        result.spSignal
+        ? "🔴 상단터치"
+        : "🟢 정상"
+    );
+
+
+    setSignal(
+        "signal-ndx",
+        result.ndxSignal,
+        result.ndxSignal
+        ? "🔴 상단터치"
+        : "🟢 정상"
+    );
+
+
+    setSignal(
+        "signal-kospi",
+        result.kospiSignal,
+        result.kospiSignal
+        ? "🔴 상단터치"
+        : "🟢 정상"
+    );
+
+
+    setSignal(
+        "signal-per",
+        result.valuationSignal,
+        result.valuationSignal
+        ? "🔴 고평가"
+        : "🟢 정상"
+    );
+
+
+    /*
+     * 5 단계
+     */
+
+    let level;
+
+
+    if(score===0 || score===1){
+
+        level="normal";
+
+    }
+    else if(score===2){
+
+        level="warning";
+
+    }
+    else if(score===3){
+
+        level="caution";
+
+    }
+    else if(score===4){
+
+        level="danger";
+
+    }
+    else{
+
+        level="extreme";
+
+    }
+
+
+    updateAlert(level);
+
+
+    const profile =
+        profiles[level];
+
+
+    portfolio.forEach(
+        asset=>{
+
+            asset.target =
+                profile[asset.key];
+
+        }
+    );
+
+
+    calculateRebalance();
+
+}
+
+
+/* ==========================================================
+   SIGNAL
+========================================================== */
+
+function setSignal(
+    id,
+    active,
+    text
+){
+
+    const el =
+        document.getElementById(id);
+
+
+    el.innerText=text;
+
+
+    el.className =
+        "signal-value "+
+        (
+            active
+            ? "positive"
+            : "negative"
+        );
+
+}
+
+
+/* ==========================================================
+   ALERT
+========================================================== */
+
+function updateAlert(level){
+
+    const profile =
+        profiles[level];
+
+
+    const alert =
+        document.getElementById(
+            "market-alert"
+        );
+
+
+    const title =
+        document.getElementById(
+            "alert-title"
+        );
+
+
+    const desc =
+        document.getElementById(
+            "alert-desc"
+        );
+
+
+    const mode =
+        document.getElementById(
+            "mode-tag"
+        );
+
+
+    const modeTitle =
+        document.getElementById(
+            "mode-title"
+        );
+
+
+    const modeDesc =
+        document.getElementById(
+            "mode-desc"
+        );
+
+
+    alert.className =
+        "alert "+level;
+
+
+    title.innerText =
+        profile.name;
+
+
+    desc.innerText =
+        profile.desc;
+
+
+    mode.innerText =
+        profile.name+" 모드";
+
+
+    modeTitle.innerText =
+        profile.name+" 모드";
+
+
+    modeDesc.innerText =
+        profile.desc;
+
+
+    document.getElementById(
+        "heat-level"
+    ).innerText =
+        profile.name;
+
+
+    const vixStatus =
+        document.getElementById(
+            "vix-status"
+        );
+
+
+    if(
+        vixValue > 0
+    ){
+
+        if(
+            vixValue<14
+        ){
+
+            vixStatus.innerText =
+                "저변동성 과열 신호";
+
+        }
+        else if(
+            vixFiveDayCondition()
+        ){
+
+            vixStatus.innerText =
+                "14~14.5 구간 5일 지속";
+
+        }
+        else{
+
+            vixStatus.innerText =
+                "저변동성 신호 없음";
+
+        }
+
+    }
+
+}
+
+
+/* ==========================================================
+   REBALANCE
+========================================================== */
+
+function calculateRebalance(){
+
+    const total =
+        Number(
+            document.getElementById(
+                "total-asset"
+            ).value
+        ) || 0;
+
+
+    const currentTotal =
+        portfolio.reduce(
+            (sum,asset)=>
+                sum+Number(asset.current),
+            0
+        );
+
+
+    const totalEl =
+        document.getElementById(
+            "portfolio-total"
+        );
+
+
+    totalEl.innerText =
+        `현재 비중 합계: ${currentTotal.toFixed(1)}%`;
+
+
+    if(
+        Math.abs(
+            currentTotal-100
+        ) > 0.01
+    ){
+
+        totalEl.style.color =
+            "#f87171";
+
+        totalEl.innerText +=
+            " ⚠️ 100%가 아닙니다.";
+
+    }
+    else{
+
+        totalEl.style.color =
+            "#4ade80";
+
+    }
+
+
+    const tbody =
+        document.getElementById(
+            "rebalance-body"
+        );
+
+
+    tbody.innerHTML="";
+
+
+    portfolio.forEach(
+        (asset,index)=>{
+
+            const currentValue =
+                total*
+                asset.current/
+                100;
+
+
+            const targetValue =
+                total*
+                asset.target/
+                100;
+
+
+            const diff =
+                targetValue -
+                currentValue;
+
+
+            let action;
+
+
+            if(
+                diff>0
+            ){
+
+                action =
+                    `<span class="rebalance-buy">
+                    ▲ 매수 ${formatWon(diff)}
+                    </span>`;
+
+            }
+            else if(
+                diff<0
+            ){
+
+                action =
+                    `<span class="rebalance-sell">
+                    ▼ 매도 ${formatWon(Math.abs(diff))}
+                    </span>`;
+
+            }
+            else{
+
+                action =
+                    `<span class="rebalance-none">
+                    유지
+                    </span>`;
+
+            }
+
+
+            const tr =
+                document.createElement("tr");
+
+
+            tr.innerHTML=`
+
+<td>
+
+<span
+class="dot"
+style="
+background:${asset.color}">
+</span>
+
+${asset.name}
+
+</td>
+
+
+<td class="right">
+
+<input
+type="number"
+value="${asset.current}"
+style="
+width:50px;
+text-align:center"
+onchange="
+updatePortfolio(
+${index},
+'current',
+this.value
+)"
+>
+
+%
+
+</td>
+
+
+<td class="right">
+
+<strong>
+${asset.target}%
+</strong>
+
+</td>
+
+
+<td class="right">
+
+${formatWon(currentValue)}
+
+</td>
+
+
+<td class="right">
+
+${formatWon(targetValue)}
+
+</td>
+
+
+<td class="right">
+
+${action}
+
+</td>
+
+`;
+
+
+            tbody.appendChild(tr);
+
+        }
+    );
+
+
+    updateDonuts();
+
+}
+
+
+/* ==========================================================
+   DONUT
+========================================================== */
+
+function updateDonuts(){
+
+    function makeGradient(
+        target
+    ){
+
+        let start=0;
+
+
+        const stops=[];
+
+
+        portfolio.forEach(
+            asset=>{
+
+                const value =
+                    target
+                    ? asset.target
+                    : asset.current;
+
+
+                stops.push(
+                    `${asset.color} ${start}% ${start+value}%`
+                );
+
+
+                start+=value;
+
+            }
+        );
+
+
+        return(
+            `conic-gradient(${stops.join(",")})`
+        );
+
+    }
+
+
+    document.getElementById(
+        "current-donut"
+    ).style.background =
+        makeGradient(false);
+
+
+    document.getElementById(
+        "target-donut"
+    ).style.background =
+        makeGradient(true);
+
+}
+
+
+/* ==========================================================
+   UPDATE PORTFOLIO
+========================================================== */
+
+function updatePortfolio(
+    index,
+    field,
+    value
+){
+
+    const number =
+        Number(value);
+
+
+    portfolio[index][field] =
+        isFinite(number)
+        ? number
+        : 0;
+
+
+    calculateRebalance();
+
+}
+
+
+/* ==========================================================
+   ADD TICKER
+========================================================== */
+
+async function addTicker(){
+
+    const input =
+        document.getElementById(
+            "ticker-input"
+        );
+
+
+    const ticker =
+        input.value
+        .trim()
+        .toUpperCase();
+
+
+    if(!ticker)
+        return;
+
+
+    if(stockData[ticker]){
+
+        input.value="";
+        return;
+
+    }
+
+
+    stockData[ticker]={
+
+        name:ticker,
+
+        price:0,
+
+        history:[],
+
+        daily:null,
+
+        weekly:null,
+
+        success:false
+
+    };
+
+
+    renderStocks();
+
+
+    input.value="";
+
+
+    const data =
+        await fetchYahooData(
+            ticker
+        );
+
+
+    if(data.success){
+
+        stockData[ticker].price =
+            data.price;
+
+        stockData[ticker].history =
+            data.history;
+
+        stockData[ticker].daily =
+            data.daily;
+
+        stockData[ticker].weekly =
+            data.weekly;
+
+        stockData[ticker].success =
+            true;
+
+    }
+
+
+    renderStocks();
+
+}
+
+
+/* ==========================================================
+   REMOVE TICKER
+========================================================== */
+
+function removeTicker(
+    ticker
+){
+
+    delete stockData[ticker];
+
+    renderStocks();
+
+}
+
+
+/* ==========================================================
+   FETCH VIX
+========================================================== */
+
+async function fetchVIX(){
+
+    const data =
+        await fetchYahooData(
+            "^VIX"
+        );
+
+
+    if(
+        !data.success
+    ){
+
+        return false;
+
+    }
+
+
+    vixValue =
+        data.price;
+
+
+    vixHistory =
+        data.history || [];
+
+
+    return true;
+
+}
+
+
+/* ==========================================================
+   FETCH ALL
+========================================================== */
+
+async function fetchAllData(){
+
+    const button =
+        document.getElementById(
+            "refresh-btn"
+        );
+
+
+    const status =
+        document.getElementById(
+            "api-status"
+        );
+
+
+    button.disabled=true;
+
+    status.innerText =
+        "갱신 중...";
+
+
+    let success=0;
+
+
+    /*
+     * VIX
+     */
+
+    if(
+        await fetchVIX()
+    ){
+
+        success++;
+
+    }
+
+
+    /*
+     * INDEX
+     */
+
+    for(
+        const symbol in marketData
+    ){
+
+        const data =
+            await fetchYahooData(
+                symbol
+            );
+
+
+        if(
+            data.success
+        ){
+
+            marketData[symbol].price =
+                data.price;
+
+            marketData[symbol].history =
+                data.history;
+
+            marketData[symbol].daily =
+                data.daily;
+
+            marketData[symbol].weekly =
+                data.weekly;
+
+            marketData[symbol].success =
+                true;
+
+            success++;
+
+        }
+
+    }
+
+
+    /*
+     * STOCK
+     */
+
+    for(
+        const ticker in stockData
+    ){
+
+        const data =
+            await fetchYahooData(
+                ticker
+            );
+
+
+        if(
+            data.success
+        ){
+
+            stockData[ticker].price =
+                data.price;
+
+            stockData[ticker].history =
+                data.history;
+
+            stockData[ticker].daily =
+                data.daily;
+
+            stockData[ticker].weekly =
+                data.weekly;
+
+            stockData[ticker].success =
+                true;
+
+            success++;
+
+        }
+
+    }
+
+
+    renderIndexes();
+
+    renderStocks();
+
+    renderPER();
+
+    updateMarket();
+
+
+    status.innerText =
+        `연동 ${success}개 완료`;
+
+
+    document.getElementById(
+        "timestamp"
+    ).innerText =
+        "마지막 갱신: "+
+        new Date()
+        .toLocaleString(
+            "ko-KR"
+        );
+
+
+    button.disabled=false;
+
+}
+
+
+/* ==========================================================
+   INITIALIZE
+========================================================== */
+
+renderIndexes();
+
+renderStocks();
+
+renderPER();
+
+calculateRebalance();
+
+fetchAllData();
+
+</script>
+
+</body>
+</html>
