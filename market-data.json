@@ -1,579 +1,150 @@
-name: Update Market Data
-
-on:
-  schedule:
-    # UTC 06:00 = 한국시간 15:00
-    - cron: "0 6 * * 1-5"
-
-  workflow_dispatch:
-
-permissions:
-  contents: write
-
-jobs:
-
-  update-market-data:
-
-    runs-on: ubuntu-latest
-
-    steps:
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-
-      - name: Install dependencies
-        run: |
-          pip install requests
-
-      - name: Download market data
-        run: |
-
-          python <<'PY'
-
-          import requests
-          import json
-          import math
-          from datetime import datetime, timezone
-
-
-          BASE = "https://query1.finance.yahoo.com/v8/finance/chart/"
-
-
-          HEADERS = {
-              "User-Agent":
-                  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36"
-          }
-
-
-          INDICES = [
-              "^GSPC",
-              "^NDX",
-              "^KS11"
-          ]
-
-
-          # ==================================================
-          # Watchlist 읽기
-          # ==================================================
-
-          with open(
-              "watchlist.json",
-              "r",
-              encoding="utf-8"
-          ) as f:
-
-              watchlist_config = json.load(f)
-
-
-          WATCHLIST = [
-
-              item["symbol"]
-
-              for item
-              in watchlist_config.get(
-                  "stocks",
-                  []
-              )
-
-          ]
-
-
-          print("================================")
-          print("WATCHLIST")
-          print(WATCHLIST)
-          print("================================")
-
-
-          # ==================================================
-          # Yahoo Finance
-          # ==================================================
-
-          def get_chart(
-              symbol,
-              interval="1d",
-              range_="1y"
-          ):
-
-              encoded =
-                  requests.utils.quote(
-                      symbol,
-                      safe=""
-                  )
-
-              url =
-                  BASE +
-                  encoded +
-                  "?interval=" +
-                  interval +
-                  "&range=" +
-                  range_
-
-
-              response =
-                  requests.get(
-                      url,
-                      headers=HEADERS,
-                      timeout=30
-                  )
-
-
-              response.raise_for_status()
-
-
-              data =
-                  response.json()
-
-
-              chart =
-                  data.get(
-                      "chart",
-                      {}
-                  )
-
-
-              results =
-                  chart.get(
-                      "result"
-                  )
-
-
-              if not results:
-
-                  raise Exception(
-                      "Yahoo result 없음"
-                  )
-
-
-              result =
-                  results[0]
-
-
-              timestamps =
-                  result.get(
-                      "timestamp",
-                      []
-                  )
-
-
-              indicators =
-                  result.get(
-                      "indicators",
-                      {}
-                  )
-
-
-              quote =
-                  indicators.get(
-                      "quote",
-                      [{}]
-                  )[0]
-
-
-              closes =
-                  quote.get(
-                      "close",
-                      []
-                  )
-
-
-              rows = []
-
-
-              for ts, close in zip(
-                  timestamps,
-                  closes
-              ):
-
-                  if close is None:
-                      continue
-
-
-                  rows.append({
-
-                      "timestamp":
-                          ts,
-
-                      "close":
-                          float(close)
-
-                  })
-
-
-              meta =
-                  result.get(
-                      "meta",
-                      {}
-                  )
-
-
-              price =
-                  meta.get(
-                      "regularMarketPrice"
-                  )
-
-
-              if (
-                  price is None
-                  and rows
-              ):
-
-                  price =
-                      rows[-1]["close"]
-
-
-              if price is None:
-
-                  raise Exception(
-                      "현재가 없음"
-                  )
-
-
-              return {
-
-                  "price":
-                      float(price),
-
-                  "rows":
-                      rows
-
-              }
-
-
-          # ==================================================
-          # Bollinger Band
-          # ==================================================
-
-          def calculate_bb(
-              values,
-              period=20,
-              multiplier=2.5
-          ):
-
-              if len(values) < period:
-
-                  return {
-
-                      "middle": None,
-                      "upper": None,
-                      "lower": None
-
-                  }
-
-
-              arr =
-                  values[-period:]
-
-
-              mean =
-                  sum(arr) / len(arr)
-
-
-              variance =
-                  sum(
-                      (x - mean) ** 2
-                      for x in arr
-                  ) / len(arr)
-
-
-              sd =
-                  math.sqrt(
-                      variance
-                  )
-
-
-              return {
-
-                  "middle":
-                      mean,
-
-                  "upper":
-                      mean +
-                      multiplier * sd,
-
-                  "lower":
-                      mean -
-                      multiplier * sd
-
-              }
-
-
-          # ==================================================
-          # 종목 데이터 생성
-          # ==================================================
-
-          def build_symbol(symbol):
-
-              print(
-                  "Downloading:",
-                  symbol
-              )
-
-
-              daily =
-                  get_chart(
-                      symbol,
-                      "1d",
-                      "1y"
-                  )
-
-
-              weekly =
-                  get_chart(
-                      symbol,
-                      "1wk",
-                      "2y"
-                  )
-
-
-              daily_values = [
-
-                  x["close"]
-
-                  for x
-                  in daily["rows"]
-
-              ]
-
-
-              weekly_values = [
-
-                  x["close"]
-
-                  for x
-                  in weekly["rows"]
-
-              ]
-
-
-              daily_bb =
-                  calculate_bb(
-                      daily_values,
-                      20,
-                      2.5
-                  )
-
-
-              weekly_bb =
-                  calculate_bb(
-                      weekly_values,
-                      20,
-                      2.5
-                  )
-
-
-              return {
-
-                  "price":
-                      daily["price"],
-
-                  "daily":
-                      daily_bb,
-
-                  "weekly":
-                      weekly_bb
-
-              }
-
-
-          # ==================================================
-          # 전체 JSON
-          # ==================================================
-
-          output = {
-
-              "generatedAt":
-                  datetime.now(
-                      timezone.utc
-                  ).isoformat(),
-
-              "vix": {
-
-                  "price":
-                      None,
-
-                  "history":
-                      []
-
-              },
-
-              "indices": {},
-
-              "stocks": {}
-
-          }
-
-
-          # ==================================================
-          # VIX
-          # ==================================================
-
-          try:
-
-              vix =
-                  get_chart(
-                      "^VIX",
-                      "1d",
-                      "1y"
-                  )
-
-
-              output["vix"]["price"] =
-                  vix["price"]
-
-
-              output["vix"]["history"] = [
-
-                  x["close"]
-
-                  for x
-                  in vix["rows"]
-
-              ][-60:]
-
-
-              print(
-                  "VIX OK:",
-                  output["vix"]["price"]
-              )
-
-
-          except Exception as e:
-
-              print(
-                  "VIX ERROR:",
-                  e
-              )
-
-
-          # ==================================================
-          # 주요 지수
-          # ==================================================
-
-          for symbol in INDICES:
-
-              try:
-
-                  output["indices"][symbol] =
-                      build_symbol(
-                          symbol
-                      )
-
-
-                  print(
-                      "INDEX OK:",
-                      symbol
-                  )
-
-
-              except Exception as e:
-
-                  print(
-                      "INDEX ERROR:",
-                      symbol,
-                      e
-                  )
-
-
-          # ==================================================
-          # 관심종목
-          # ==================================================
-
-          for symbol in WATCHLIST:
-
-              try:
-
-                  output["stocks"][symbol] =
-                      build_symbol(
-                          symbol
-                      )
-
-
-                  print(
-                      "STOCK OK:",
-                      symbol
-                  )
-
-
-              except Exception as e:
-
-                  print(
-                      "STOCK ERROR:",
-                      symbol,
-                      e
-                  )
-
-
-          # ==================================================
-          # JSON 저장
-          # ==================================================
-
-          with open(
-              "market-data.json",
-              "w",
-              encoding="utf-8"
-          ) as f:
-
-              json.dump(
-                  output,
-                  f,
-                  ensure_ascii=False,
-                  indent=2
-              )
-
-
-          print(
-              "================================"
-          )
-
-          print(
-              "MARKET DATA CREATED"
-          )
-
-          print(
-              "================================"
-          )
-
-
-          print(
-              json.dumps(
-                  output,
-                  ensure_ascii=False,
-                  indent=2
-              )
-          )
-
-
-          PY
-
-
-      - name: Check market-data.json
-        run: |
-
-          echo "=============================="
-          echo "market-data.json"
-          echo "=============================="
-
-          cat market-data.json
-
-
-      - name: Commit market data
-        run: |
-
-          git config user.name \
-            "github-actions[bot]"
-
-          git config user.email \
-            "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add market-data.json
-
-          git diff --cached --quiet || \
-            git commit \
-            -m "Update market data"
-
-          git push
+{
+  "generatedAt": "2026-08-28T06:45:31.664142+00:00",
+  "vix": {
+    "price": 14.51,
+    "history": [
+      16.059999465942383,
+      15.399999618530273,
+      21.510000228881836,
+      18.920000076293945,
+      19.8700008392334,
+      22.219999313354492,
+      19.440000534057617,
+      17.68000030517578,
+      16.200000762939453,
+      16.40999984741211,
+      18.440000534057617,
+      16.399999618530273,
+      17.280000686645508,
+      19.489999771118164,
+      18.6299991607666,
+      18.889999389648438,
+      18.40999984741211,
+      17.649999618530273,
+      16.450000762939453,
+      16.59000015258789,
+      16.149999618530273,
+      15.569999694824219,
+      16.1299991607666,
+      16.899999618530273,
+      15.84000015258789,
+      15.029999732971191,
+      17.15999984741211,
+      16.5,
+      15.670000076293945,
+      16.729999542236328,
+      18.770000457763672,
+      18.649999618530273,
+      17.049999237060547,
+      16.639999389648438,
+      18.700000762939453,
+      18.579999923706055,
+      18.670000076293945,
+      18.209999084472656,
+      20.65999984741211,
+      17.09000015258789,
+      15.989999771118164,
+      15.859999656677246,
+      16.5,
+      15.8100004196167,
+      15.149999618530273,
+      14.899999618530273,
+      15.460000038146973,
+      15.279999732971191,
+      14.550000190734863,
+      14.630000114440918,
+      14.25,
+      15.1899995803833,
+      15.84000015258789,
+      14.890000343322754,
+      16.010000228881836,
+      15.130000114440918,
+      15.850000381469727,
+      15.449999809265137,
+      15.210000038146973,
+      14.510000228881836
+    ]
+  },
+  "indices": {
+    "^GSPC": {
+      "price": 7730.99,
+      "daily": {
+        "middle": 7701.480517578125,
+        "upper": 7872.027557944166,
+        "lower": 7530.933477212084
+      },
+      "weekly": {
+        "middle": 7501.186596679688,
+        "upper": 7916.128839511306,
+        "lower": 7086.244353848069
+      }
+    },
+    "^NDX": {
+      "price": 29641.56,
+      "daily": {
+        "middle": 29446.0486328125,
+        "upper": 30503.642700242315,
+        "lower": 28388.454565382686
+      },
+      "weekly": {
+        "middle": 29190.84794921875,
+        "upper": 31211.559575272102,
+        "lower": 27170.1363231654
+      }
+    },
+    "^KS11": {
+      "price": 6807.9,
+      "daily": {
+        "middle": 6622.7740234375,
+        "upper": 7230.673792930216,
+        "lower": 6014.874253944783
+      },
+      "weekly": {
+        "middle": 7383.913037109375,
+        "upper": 9320.002083898142,
+        "lower": 5447.8239903206095
+      }
+    }
+  },
+  "stocks": {
+    "NVDA": {
+      "price": 227.98,
+      "daily": {
+        "middle": 217.20750122070314,
+        "upper": 234.7038577028549,
+        "lower": 199.71114473855138
+      },
+      "weekly": {
+        "middle": 211.1605010986328,
+        "upper": 237.5326898798585,
+        "lower": 184.7883123174071
+      }
+    },
+    "AAPL": {
+      "price": 314.58,
+      "daily": {
+        "middle": 309.3214996337891,
+        "upper": 318.72235809535744,
+        "lower": 299.9206411722207
+      },
+      "weekly": {
+        "middle": 305.1639999389648,
+        "upper": 343.5242143770637,
+        "lower": 266.80378550086596
+      }
+    },
+    "005930.KS": {
+      "price": 258500.0,
+      "daily": {
+        "middle": 254275.0,
+        "upper": 292037.5703408812,
+        "lower": 216512.42965911882
+      },
+      "weekly": {
+        "middle": 280325.0,
+        "upper": 373896.72633199627,
+        "lower": 186753.27366800373
+      }
+    }
+  }
+}
