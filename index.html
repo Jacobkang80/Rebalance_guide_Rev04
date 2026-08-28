@@ -1,0 +1,2920 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Smart Rebalancing Dashboard</title>
+
+<style>
+
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Pretendard",
+        "Noto Sans KR",
+        sans-serif;
+}
+
+:root{
+    --bg:#0b1120;
+    --card:#111827;
+    --card2:#172033;
+    --border:#273449;
+    --text:#f8fafc;
+    --muted:#94a3b8;
+    --blue:#38bdf8;
+    --green:#22c55e;
+    --yellow:#f59e0b;
+    --red:#ef4444;
+    --purple:#a855f7;
+}
+
+body{
+    background:
+        radial-gradient(circle at top,#16213b 0%,#0b1120 42%);
+    color:var(--text);
+    padding:18px 12px 50px;
+    max-width:850px;
+    margin:auto;
+}
+
+header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:18px;
+    gap:10px;
+}
+
+h1{
+    font-size:1.35rem;
+}
+
+.header-sub{
+    color:var(--muted);
+    font-size:.75rem;
+    margin-top:3px;
+}
+
+button{
+    border:0;
+    cursor:pointer;
+}
+
+.refresh{
+    background:linear-gradient(135deg,#4f46e5,#9333ea);
+    color:white;
+    padding:9px 13px;
+    border-radius:20px;
+    font-size:.76rem;
+    font-weight:700;
+}
+
+.card{
+    background:rgba(17,24,39,.95);
+    border:1px solid var(--border);
+    border-radius:17px;
+    padding:16px;
+    margin-bottom:15px;
+    box-shadow:0 8px 30px rgba(0,0,0,.18);
+}
+
+.title{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:13px;
+    gap:8px;
+    font-weight:800;
+    font-size:.95rem;
+}
+
+.subtitle{
+    color:var(--muted);
+    font-size:.7rem;
+    font-weight:500;
+}
+
+.status{
+    font-size:.68rem;
+    padding:3px 7px;
+    border-radius:8px;
+    background:#1e293b;
+    color:var(--muted);
+    white-space:nowrap;
+}
+
+.vix-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:12px;
+}
+
+.vix-label{
+    color:var(--muted);
+    font-size:.8rem;
+}
+
+.vix-value{
+    font-size:2rem;
+    font-weight:900;
+    color:var(--yellow);
+}
+
+.alert{
+    border-radius:12px;
+    padding:13px;
+    margin-bottom:11px;
+    background:rgba(34,197,94,.10);
+    border:1px solid rgba(34,197,94,.25);
+}
+
+.alert.warning{
+    background:rgba(245,158,11,.11);
+    border-color:rgba(245,158,11,.3);
+}
+
+.alert.danger{
+    background:rgba(239,68,68,.12);
+    border-color:rgba(239,68,68,.4);
+}
+
+.alert-title{
+    font-size:.9rem;
+    font-weight:800;
+    margin-bottom:4px;
+}
+
+.alert-desc{
+    color:#cbd5e1;
+    font-size:.74rem;
+    line-height:1.5;
+}
+
+.rules{
+    background:#0c1425;
+    border-radius:10px;
+    padding:11px;
+    color:var(--muted);
+    font-size:.7rem;
+    line-height:1.6;
+}
+
+.rules strong{
+    color:#e2e8f0;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:.73rem;
+}
+
+th{
+    color:var(--muted);
+    font-weight:600;
+    text-align:right;
+    padding:8px 4px;
+    border-bottom:1px solid var(--border);
+    white-space:nowrap;
+}
+
+th:first-child,
+td:first-child{
+    text-align:left;
+}
+
+td{
+    padding:10px 4px;
+    border-bottom:1px solid rgba(148,163,184,.08);
+    text-align:right;
+    vertical-align:middle;
+    white-space:nowrap;
+}
+
+td:first-child{
+    font-weight:700;
+}
+
+.num{
+    font-variant-numeric:tabular-nums;
+}
+
+.badge{
+    display:inline-block;
+    padding:3px 7px;
+    border-radius:8px;
+    font-size:.63rem;
+    font-weight:800;
+    white-space:nowrap;
+}
+
+.normal{
+    background:rgba(34,197,94,.12);
+    color:#4ade80;
+}
+
+.touch{
+    background:rgba(239,68,68,.16);
+    color:#f87171;
+}
+
+.watch{
+    background:rgba(245,158,11,.14);
+    color:#fbbf24;
+}
+
+.info{
+    background:rgba(56,189,248,.12);
+    color:#38bdf8;
+}
+
+input{
+    background:#0b1220;
+    border:1px solid #334155;
+    color:white;
+    border-radius:7px;
+    padding:6px 7px;
+    font-size:.72rem;
+    outline:none;
+}
+
+input:focus{
+    border-color:var(--blue);
+}
+
+.price-input{
+    width:88px;
+    text-align:right;
+}
+
+.pct-input{
+    width:55px;
+    text-align:center;
+}
+
+.money-input{
+    width:105px;
+    text-align:right;
+}
+
+.search{
+    display:flex;
+    gap:7px;
+    margin-bottom:10px;
+}
+
+.search input{
+    flex:1;
+}
+
+.add{
+    background:#334155;
+    color:white;
+    border-radius:7px;
+    padding:7px 11px;
+    font-weight:700;
+    white-space:nowrap;
+}
+
+.delete{
+    background:none;
+    color:#64748b;
+    font-size:1rem;
+}
+
+.small{
+    font-size:.65rem;
+    color:var(--muted);
+}
+
+.up{
+    color:#4ade80;
+    font-weight:800;
+}
+
+.down{
+    color:#f87171;
+    font-weight:800;
+}
+
+.chart-area{
+    display:flex;
+    justify-content:space-around;
+    align-items:center;
+    gap:20px;
+    background:#0c1425;
+    border:1px solid #1e293b;
+    border-radius:13px;
+    padding:20px 8px;
+    margin-bottom:12px;
+}
+
+.chart-box{
+    text-align:center;
+    flex:1;
+}
+
+.chart-label{
+    color:var(--muted);
+    font-size:.7rem;
+    margin-bottom:10px;
+}
+
+.donut{
+    width:145px;
+    height:145px;
+    border-radius:50%;
+    position:relative;
+    margin:auto;
+    box-shadow:0 6px 20px rgba(0,0,0,.35);
+}
+
+.donut:after{
+    content:"";
+    position:absolute;
+    width:76px;
+    height:76px;
+    background:#111827;
+    border-radius:50%;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+}
+
+.donut-center{
+    position:absolute;
+    z-index:5;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    text-align:center;
+    font-size:.65rem;
+    color:#cbd5e1;
+    line-height:1.35;
+    width:70px;
+}
+
+.donut-center strong{
+    display:block;
+    color:white;
+    font-size:.78rem;
+}
+
+.donut-label{
+    position:absolute;
+    z-index:10;
+    transform:translate(-50%,-50%);
+    font-size:.58rem;
+    font-weight:900;
+    color:white;
+    text-shadow:
+        0 1px 3px rgba(0,0,0,.9);
+    pointer-events:none;
+    white-space:nowrap;
+}
+
+.legend{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:7px;
+    margin-bottom:13px;
+    font-size:.68rem;
+}
+
+.legend-item{
+    display:flex;
+    align-items:center;
+    gap:6px;
+}
+
+.dot{
+    width:9px;
+    height:9px;
+    border-radius:50%;
+    flex:none;
+}
+
+.asset-total{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    width:100%;
+    min-width:0;
+    background:#0c1425;
+    border:1px solid #263449;
+    border-radius:10px;
+    padding:12px;
+    margin-bottom:12px;
+}
+
+.asset-total strong{
+    flex:0 0 auto;
+    white-space:nowrap;
+    font-size:.78rem;
+}
+
+.asset-total-input{
+    flex:1 1 auto;
+    min-width:0;
+    max-width:200px;
+    background:#0b1220;
+    border:1px solid #334155;
+    color:white;
+    border-radius:7px;
+    padding:8px 9px;
+    font-size:.78rem;
+    font-weight:800;
+    text-align:right;
+    outline:none;
+}
+
+.asset-total-input:focus{
+    border-color:var(--blue);
+}
+
+.portfolio-warning{
+    background:rgba(245,158,11,.08);
+    border:1px solid rgba(245,158,11,.22);
+    color:#fbbf24;
+    border-radius:9px;
+    padding:9px;
+    font-size:.68rem;
+    line-height:1.5;
+    margin-bottom:11px;
+}
+
+.rebalance-table td{
+    padding:9px 3px;
+}
+
+.action-buy{
+    color:#4ade80;
+    font-weight:900;
+}
+
+.action-sell{
+    color:#f87171;
+    font-weight:900;
+}
+
+.action-hold{
+    color:#94a3b8;
+    font-weight:700;
+}
+
+.data-time{
+    color:#64748b;
+    font-size:.63rem;
+    text-align:right;
+    margin-top:8px;
+}
+
+.footer{
+    color:#64748b;
+    text-align:center;
+    font-size:.65rem;
+    line-height:1.5;
+    margin-top:20px;
+}
+
+@media(max-width:560px){
+
+    body{
+        padding-left:8px;
+        padding-right:8px;
+    }
+
+    table{
+        font-size:.66rem;
+    }
+
+    th{
+        font-size:.59rem;
+    }
+
+    .donut{
+        width:120px;
+        height:120px;
+    }
+
+    .donut:after{
+        width:64px;
+        height:64px;
+    }
+
+    .donut-label{
+        font-size:.52rem;
+    }
+
+    .money-input{
+        width:90px;
+    }
+
+    .price-input{
+        width:78px;
+    }
+
+    .chart-area{
+        gap:5px;
+        padding:15px 2px;
+    }
+
+}
+
+@media(max-width:420px){
+
+    .asset-total{
+        flex-direction:column;
+        align-items:stretch;
+        gap:8px;
+    }
+
+    .asset-total-input{
+        width:100%;
+        max-width:none;
+    }
+
+    .title{
+        align-items:flex-start;
+    }
+
+    .search{
+        flex-direction:column;
+    }
+
+    .add{
+        width:100%;
+    }
+
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+
+    <div>
+        <h1>📊 스마트 리밸런싱</h1>
+
+        <div class="header-sub">
+            VIX · BB(2.5σ) · PER · 포트폴리오 분석
+        </div>
+    </div>
+
+    <button
+        class="refresh"
+        onclick="loadMarketData(true)">
+        ⚡ 갱신
+    </button>
+
+</header>
+
+
+<!-- =====================================================
+VIX
+===================================================== -->
+
+<div class="card">
+
+    <div class="title">
+
+        <span>
+            🔥 VIX 변동성 & 고점 과열 경보
+        </span>
+
+        <span
+            id="apiStatus"
+            class="status">
+            데이터 준비
+        </span>
+
+    </div>
+
+    <div class="vix-row">
+
+        <div>
+
+            <div class="vix-label">
+                CBOE Volatility Index
+            </div>
+
+            <div class="small">
+                GitHub Actions 최근 데이터
+            </div>
+
+        </div>
+
+        <div
+            id="vixValue"
+            class="vix-value">
+            --
+        </div>
+
+    </div>
+
+    <div id="alertBox" class="alert">
+
+        <div
+            id="alertTitle"
+            class="alert-title">
+            🟢 데이터 대기
+        </div>
+
+        <div
+            id="alertDesc"
+            class="alert-desc">
+            시장 데이터를 불러오는 중입니다.
+        </div>
+
+    </div>
+
+    <div class="rules">
+
+        <strong>고점 과열 판단 기준</strong><br>
+
+        ① VIX &lt; 14.0<br>
+
+        ② 또는 VIX가
+        <strong>14.0~14.5 구간에서 최근 5거래일 연속</strong><br>
+
+        ③ 동시에 S&P 500 또는 Nasdaq 100의
+        일봉/주봉 BB(2.5σ) 상단 터치<br>
+
+        → ①/② + ③ 충족 시
+        <strong>고점 과열</strong><br>
+
+        → 둘 중 하나만 충족하면
+        <strong>고점 주의</strong>
+
+    </div>
+
+    <div
+        id="dataTime"
+        class="data-time">
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+주요 지수
+===================================================== -->
+
+<div class="card">
+
+    <div class="title">
+
+        <span>
+            📈 주요 지수 BB(2.5σ)
+        </span>
+
+        <span
+            id="indexTouchCount"
+            class="subtitle">
+            0 / 6
+        </span>
+
+    </div>
+
+    <div style="overflow-x:auto">
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>지수</th>
+                    <th>현재가</th>
+                    <th>일봉 평균</th>
+                    <th>일봉 상단</th>
+                    <th>주봉 평균</th>
+                    <th>주봉 상단</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody id="indexTable"></tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+PER
+===================================================== -->
+
+<div class="card">
+
+    <div class="title">
+
+        <span>
+            📊 주요 지수 PER 진단
+        </span>
+
+        <span class="subtitle">
+            현재 vs 평균 vs Forward
+        </span>
+
+    </div>
+
+    <div style="overflow-x:auto">
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>지수</th>
+                    <th>현재</th>
+                    <th>Forward</th>
+                    <th>3년 평균</th>
+                    <th>평가</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody id="perTable"></tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+관심종목
+===================================================== -->
+
+<div class="card">
+
+    <div class="title">
+
+        <span>
+            ⭐ 관심종목 BB(2.5σ)
+        </span>
+
+        <span class="subtitle">
+            현재가 / 일봉 / 주봉
+        </span>
+
+    </div>
+
+    <div class="search">
+
+        <input
+            id="tickerInput"
+            placeholder="예: 007860.KS / NVDA">
+
+        <button
+            class="add"
+            onclick="addTicker()">
+            + 추가
+        </button>
+
+    </div>
+
+    <div
+        id="watchlistNotice"
+        class="portfolio-warning"
+        style="display:none">
+    </div>
+
+    <div style="overflow-x:auto">
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>종목</th>
+                    <th>현재가</th>
+                    <th>일봉 평균</th>
+                    <th>일봉 상단</th>
+                    <th>주봉 평균</th>
+                    <th>주봉 상단</th>
+                    <th></th>
+
+                </tr>
+
+            </thead>
+
+            <tbody id="stockTable"></tbody>
+
+        </table>
+
+    </div>
+
+    <div
+        class="rules"
+        style="margin-top:10px">
+
+        <strong>BB 계산</strong><br>
+
+        기간:
+        20일 / 20주 · 표준편차:
+        2.5σ<br>
+
+        평균 = Middle Band<br>
+
+        상단 = Middle + 2.5 × σ<br><br>
+
+        <strong>관심종목 추가 방법</strong><br>
+
+        HTML에서 추가한 종목은 우선 화면에 표시됩니다.
+        실제 BB 데이터를 받으려면
+        GitHub의 <strong>watchlist.json</strong>에
+        종목코드를 추가한 뒤
+        <strong>Actions → Update Market Data → Run workflow</strong>를 실행하세요.
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+PORTFOLIO
+===================================================== -->
+
+<div class="card">
+
+    <div class="title">
+
+        <span>
+            💰 포트폴리오 리밸런싱
+        </span>
+
+        <span
+            id="modeTag"
+            class="subtitle"
+            style="color:#22c55e">
+            🟢 정상 모드
+        </span>
+
+    </div>
+
+
+    <!-- Donut -->
+
+    <div class="chart-area">
+
+        <div class="chart-box">
+
+            <div class="chart-label">
+                현재 비중
+            </div>
+
+            <div
+                id="currentDonut"
+                class="donut">
+
+                <div
+                    id="currentDonutCenter"
+                    class="donut-center">
+                </div>
+
+                <div
+                    id="currentDonutLabels">
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="chart-box">
+
+            <div class="chart-label">
+                목표 비중
+            </div>
+
+            <div
+                id="targetDonut"
+                class="donut">
+
+                <div
+                    id="targetDonutCenter"
+                    class="donut-center">
+                </div>
+
+                <div
+                    id="targetDonutLabels">
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- Legend -->
+
+    <div class="legend">
+
+        <div class="legend-item">
+
+            <span
+                class="dot"
+                style="background:#3b82f6">
+            </span>
+
+            국내주식
+
+        </div>
+
+        <div class="legend-item">
+
+            <span
+                class="dot"
+                style="background:#10b981">
+            </span>
+
+            해외주식
+
+        </div>
+
+        <div class="legend-item">
+
+            <span
+                class="dot"
+                style="background:#f59e0b">
+            </span>
+
+            금
+
+        </div>
+
+        <div class="legend-item">
+
+            <span
+                class="dot"
+                style="background:#a855f7">
+            </span>
+
+            달러/현금
+
+        </div>
+
+    </div>
+
+
+    <!-- Total -->
+
+    <div class="asset-total">
+
+        <strong>
+            총 평가자산
+        </strong>
+
+        <input
+            id="totalAsset"
+            class="asset-total-input"
+            type="number"
+            value="100000000"
+            step="1000000"
+            oninput="calculatePortfolio()">
+
+    </div>
+
+
+    <div
+        id="portfolioWarning"
+        class="portfolio-warning"
+        style="display:none">
+    </div>
+
+
+    <!-- Rebalance -->
+
+    <div style="overflow-x:auto">
+
+        <table class="rebalance-table">
+
+            <thead>
+
+                <tr>
+
+                    <th>자산</th>
+                    <th>현재%</th>
+                    <th>목표%</th>
+                    <th>현재금액</th>
+                    <th>목표금액</th>
+                    <th>조정</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody id="rebalanceTable"></tbody>
+
+        </table>
+
+    </div>
+
+
+    <div
+        class="rules"
+        style="margin-top:11px">
+
+        <strong>리밸런싱 원칙</strong><br>
+
+        정상 → 성장형 유지<br>
+
+        주의 → 해외주식/국내주식 일부 축소
+        + 현금/금 확대<br>
+
+        과열 → 주식 비중 추가 축소
+        + 현금/금 확대<br><br>
+
+        <span style="color:#4ade80">
+            + 금액 = 매수
+        </span>
+
+        &nbsp;&nbsp;
+
+        <span style="color:#f87171">
+            - 금액 = 매도
+        </span>
+
+    </div>
+
+</div>
+
+
+<div class="footer">
+
+    데이터:
+    Yahoo Finance → GitHub Actions → market-data.json<br>
+
+    데이터 갱신:
+    평일 한국시간 15:00 예정 + 수동 실행 가능<br>
+
+    투자 판단의 최종 책임은 투자자에게 있습니다.
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   기본 데이터
+========================================================= */
+
+const indexData = {
+
+    "^GSPC":{
+        name:"S&P 500",
+        price:0,
+        daily:null,
+        weekly:null
+    },
+
+    "^NDX":{
+        name:"Nasdaq 100",
+        price:0,
+        daily:null,
+        weekly:null
+    },
+
+    "^KS11":{
+        name:"KOSPI",
+        price:0,
+        daily:null,
+        weekly:null
+    }
+
+};
+
+
+let stockData = {
+
+    "NVDA":{
+        name:"NVDA",
+        price:0,
+        daily:null,
+        weekly:null
+    },
+
+    "AAPL":{
+        name:"AAPL",
+        price:0,
+        daily:null,
+        weekly:null
+    },
+
+    "005930.KS":{
+        name:"삼성전자",
+        price:0,
+        daily:null,
+        weekly:null
+    },
+
+    "007860.KS":{
+        name:"서연",
+        price:0,
+        daily:null,
+        weekly:null
+    }
+
+};
+
+
+/* =========================================================
+   PER
+========================================================= */
+
+const perData = [
+
+    {
+        name:"S&P 500",
+        current:26.2,
+        forward:22.5,
+        avg:24.5
+    },
+
+    {
+        name:"Nasdaq 100",
+        current:28.4,
+        forward:24.2,
+        avg:28.0
+    },
+
+    {
+        name:"KOSPI 200",
+        current:10.6,
+        forward:9.8,
+        avg:11.2
+    }
+
+];
+
+
+/* =========================================================
+   Portfolio
+========================================================= */
+
+const portfolio = [
+
+    {
+        key:"domestic",
+        name:"국내주식",
+        current:40000000,
+        target:35,
+        color:"#3b82f6"
+    },
+
+    {
+        key:"overseas",
+        name:"해외주식",
+        current:40000000,
+        target:45,
+        color:"#10b981"
+    },
+
+    {
+        key:"gold",
+        name:"금",
+        current:10000000,
+        target:10,
+        color:"#f59e0b"
+    },
+
+    {
+        key:"cash",
+        name:"달러/현금",
+        current:10000000,
+        target:10,
+        color:"#a855f7"
+    }
+
+];
+
+
+const targetProfiles = {
+
+    normal:{
+        domestic:35,
+        overseas:45,
+        gold:10,
+        cash:10
+    },
+
+    warning:{
+        domestic:30,
+        overseas:35,
+        gold:15,
+        cash:20
+    },
+
+    danger:{
+        domestic:20,
+        overseas:25,
+        gold:25,
+        cash:30
+    }
+
+};
+
+
+let vixValue = 0;
+let vixHistory = [];
+let currentProfile = "normal";
+
+
+/* =========================================================
+   숫자
+========================================================= */
+
+function isFiniteNumber(value){
+
+    return Number.isFinite(
+        Number(value)
+    );
+
+}
+
+
+/* =========================================================
+   가격 포맷
+========================================================= */
+
+function formatPrice(symbol,value){
+
+    if(
+        value===null ||
+        value===undefined ||
+        !Number.isFinite(Number(value))
+    ){
+        return "--";
+    }
+
+    value=Number(value);
+
+    if(
+        symbol.includes(".KS") ||
+        symbol==="^KS11"
+    ){
+
+        return Math.round(value)
+            .toLocaleString()+"원";
+
+    }
+
+    if(symbol==="^VIX"){
+
+        return value.toFixed(2);
+
+    }
+
+    return "$"+
+        value.toLocaleString(
+            undefined,
+            {
+                minimumFractionDigits:2,
+                maximumFractionDigits:2
+            }
+        );
+
+}
+
+
+/* =========================================================
+   돈
+========================================================= */
+
+function money(value){
+
+    if(!Number.isFinite(Number(value)))
+        return "--";
+
+    return Math.round(Number(value))
+        .toLocaleString()+"원";
+
+}
+
+
+/* =========================================================
+   BB gap
+========================================================= */
+
+function gapPercent(price,upper){
+
+    if(
+        !Number.isFinite(Number(price)) ||
+        !Number.isFinite(Number(upper)) ||
+        Number(upper)===0
+    )
+        return null;
+
+    return (
+        Number(price) /
+        Number(upper) -
+        1
+    ) * 100;
+
+}
+
+
+/* =========================================================
+   BB Badge
+========================================================= */
+
+function bbBadge(price,bb){
+
+    if(
+        !bb ||
+        !Number.isFinite(Number(bb.upper))
+    ){
+
+        return `
+            <span class="badge watch">
+                데이터 대기
+            </span>
+        `;
+
+    }
+
+    if(Number(price)>=Number(bb.upper)){
+
+        return `
+            <span class="badge touch">
+                🔴 상단
+            </span>
+        `;
+
+    }
+
+    const gap=
+        gapPercent(
+            price,
+            bb.upper
+        );
+
+    if(gap!==null && gap>-3){
+
+        return `
+            <span class="badge watch">
+                🟡 근접
+            </span>
+        `;
+
+    }
+
+    return `
+        <span class="badge normal">
+            🟢 정상
+        </span>
+    `;
+
+}
+
+
+/* =========================================================
+   Index Render
+========================================================= */
+
+function renderIndex(){
+
+    const tbody=
+        document.getElementById(
+            "indexTable"
+        );
+
+    tbody.innerHTML="";
+
+    let dailyTouches=0;
+    let weeklyTouches=0;
+
+    Object.entries(indexData)
+    .forEach(
+        ([symbol,item])=>{
+
+            if(
+                item.daily &&
+                item.price>=item.daily.upper
+            ){
+                dailyTouches++;
+            }
+
+            if(
+                item.weekly &&
+                item.price>=item.weekly.upper
+            ){
+                weeklyTouches++;
+            }
+
+            const dailyGap=
+                gapPercent(
+                    item.price,
+                    item.daily?.upper
+                );
+
+            const weeklyGap=
+                gapPercent(
+                    item.price,
+                    item.weekly?.upper
+                );
+
+            const tr=
+                document.createElement("tr");
+
+            tr.innerHTML=`
+
+                <td>${item.name}</td>
+
+                <td>
+
+                    <input
+                        class="price-input"
+                        type="number"
+                        value="${
+                            item.price || ""
+                        }"
+                        onchange="
+                            manualIndexPrice(
+                                '${symbol}',
+                                this.value
+                            )
+                        "
+                    >
+
+                </td>
+
+                <td>
+                    ${
+                        item.daily
+                        ?
+                        formatPrice(
+                            symbol,
+                            item.daily.middle
+                        )
+                        :
+                        "--"
+                    }
+                </td>
+
+                <td>
+
+                    ${
+                        item.daily
+                        ?
+                        formatPrice(
+                            symbol,
+                            item.daily.upper
+                        )
+                        :
+                        "--"
+                    }
+
+                    <br>
+
+                    ${
+                        dailyGap!==null
+                        ?
+                        `<span class="${
+                            dailyGap>=0
+                            ?"down"
+                            :"small"
+                        }">
+                            ${
+                                dailyGap>=0
+                                ?"+"
+                                :""
+                            }${dailyGap.toFixed(1)}%
+                        </span>`
+                        :
+                        ""
+                    }
+
+                    <br>
+
+                    ${bbBadge(
+                        item.price,
+                        item.daily
+                    )}
+
+                </td>
+
+                <td>
+                    ${
+                        item.weekly
+                        ?
+                        formatPrice(
+                            symbol,
+                            item.weekly.middle
+                        )
+                        :
+                        "--"
+                    }
+                </td>
+
+                <td>
+
+                    ${
+                        item.weekly
+                        ?
+                        formatPrice(
+                            symbol,
+                            item.weekly.upper
+                        )
+                        :
+                        "--"
+                    }
+
+                    <br>
+
+                    ${
+                        weeklyGap!==null
+                        ?
+                        `<span class="${
+                            weeklyGap>=0
+                            ?"down"
+                            :"small"
+                        }">
+                            ${
+                                weeklyGap>=0
+                                ?"+"
+                                :""
+                            }${weeklyGap.toFixed(1)}%
+                        </span>`
+                        :
+                        ""
+                    }
+
+                    <br>
+
+                    ${bbBadge(
+                        item.price,
+                        item.weekly
+                    )}
+
+                </td>
+
+            `;
+
+            tbody.appendChild(tr);
+
+        }
+    );
+
+    document.getElementById(
+        "indexTouchCount"
+    ).innerText=
+        `${dailyTouches}일봉 / ${weeklyTouches}주봉`;
+
+}
+
+
+/* =========================================================
+   관심종목
+========================================================= */
+
+function renderStocks(){
+
+    const tbody=
+        document.getElementById(
+            "stockTable"
+        );
+
+    tbody.innerHTML="";
+
+    Object.entries(stockData)
+    .forEach(
+        ([ticker,item])=>{
+
+            const tr=
+                document.createElement("tr");
+
+            const hasData=
+                item.daily &&
+                item.weekly &&
+                Number(item.price)>0;
+
+            tr.innerHTML=`
+
+                <td>
+                    ${item.name}
+
+                    <br>
+
+                    <span class="small">
+                        ${ticker}
+                    </span>
+                </td>
+
+                <td>
+
+                    <input
+                        class="price-input"
+                        type="number"
+                        value="${
+                            item.price || ""
+                        }"
+                        placeholder="직접입력"
+                        onchange="
+                            manualStockPrice(
+                                '${ticker}',
+                                this.value
+                            )
+                        "
+                    >
+
+                </td>
+
+                <td>
+
+                    ${
+                        item.daily
+                        ?
+                        formatPrice(
+                            ticker,
+                            item.daily.middle
+                        )
+                        :
+                        "--"
+                    }
+
+                </td>
+
+                <td>
+
+                    ${
+                        item.daily
+                        ?
+                        formatPrice(
+                            ticker,
+                            item.daily.upper
+                        )
+                        :
+                        "--"
+                    }
+
+                    <br>
+
+                    ${bbBadge(
+                        item.price,
+                        item.daily
+                    )}
+
+                </td>
+
+                <td>
+
+                    ${
+                        item.weekly
+                        ?
+                        formatPrice(
+                            ticker,
+                            item.weekly.middle
+                        )
+                        :
+                        "--"
+                    }
+
+                </td>
+
+                <td>
+
+                    ${
+                        item.weekly
+                        ?
+                        formatPrice(
+                            ticker,
+                            item.weekly.upper
+                        )
+                        :
+                        "--"
+                    }
+
+                    <br>
+
+                    ${bbBadge(
+                        item.price,
+                        item.weekly
+                    )}
+
+                </td>
+
+                <td>
+
+                    <button
+                        class="delete"
+                        onclick="
+                            deleteStock(
+                                '${ticker}'
+                            )
+                        ">
+                        ✕
+                    </button>
+
+                </td>
+
+            `;
+
+            tbody.appendChild(tr);
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   관심종목 삭제
+========================================================= */
+
+function deleteStock(ticker){
+
+    delete stockData[ticker];
+
+    saveLocalStocks();
+
+    renderStocks();
+
+}
+
+
+/* =========================================================
+   수동 가격
+========================================================= */
+
+function manualIndexPrice(symbol,value){
+
+    const p=parseFloat(value);
+
+    if(Number.isFinite(p)){
+
+        indexData[symbol].price=p;
+
+        renderIndex();
+
+        updateAlert();
+
+    }
+
+}
+
+
+function manualStockPrice(ticker,value){
+
+    const p=parseFloat(value);
+
+    if(Number.isFinite(p)){
+
+        stockData[ticker].price=p;
+
+        saveLocalStocks();
+
+        renderStocks();
+
+    }
+
+}
+
+
+/* =========================================================
+   LocalStorage
+========================================================= */
+
+function saveLocalStocks(){
+
+    try{
+
+        localStorage.setItem(
+            "smartStocks",
+            JSON.stringify(stockData)
+        );
+
+    }catch(e){}
+
+}
+
+
+function loadLocalStocks(){
+
+    try{
+
+        const saved=
+            localStorage.getItem(
+                "smartStocks"
+            );
+
+        if(!saved)
+            return;
+
+        const parsed=
+            JSON.parse(saved);
+
+        Object.entries(parsed)
+        .forEach(
+            ([ticker,item])=>{
+
+                stockData[ticker]=item;
+
+            }
+        );
+
+    }catch(e){}
+
+}
+
+
+/* =========================================================
+   관심종목 추가
+========================================================= */
+
+function normalizeTicker(ticker){
+
+    ticker=
+        ticker
+        .trim()
+        .toUpperCase();
+
+    /*
+       한국 종목을 숫자 6자리로 입력하면
+       자동으로 .KS 추가
+    */
+
+    if(
+        /^\d{6}$/.test(ticker)
+    ){
+
+        ticker += ".KS";
+
+    }
+
+    return ticker;
+
+}
+
+
+function addTicker(){
+
+    const input=
+        document.getElementById(
+            "tickerInput"
+        );
+
+    const ticker=
+        normalizeTicker(
+            input.value
+        );
+
+    if(!ticker)
+        return;
+
+    if(stockData[ticker]){
+
+        input.value="";
+
+        return;
+
+    }
+
+    stockData[ticker]={
+
+        name:
+            ticker.endsWith(".KS")
+            ?
+            ticker.replace(".KS","")
+            :
+            ticker,
+
+        price:0,
+
+        daily:null,
+
+        weekly:null
+
+    };
+
+    saveLocalStocks();
+
+    renderStocks();
+
+    input.value="";
+
+    const notice=
+        document.getElementById(
+            "watchlistNotice"
+        );
+
+    notice.style.display="block";
+
+    notice.innerHTML=`
+
+        ⏳ <strong>${ticker}</strong>
+        를 화면에 추가했습니다.<br>
+
+        실제 BB 데이터를 받으려면
+        GitHub의
+        <strong>watchlist.json</strong>에
+        <strong>${ticker}</strong>를 추가한 뒤
+        GitHub Actions를 실행하세요.
+
+    `;
+
+}
+
+
+/* =========================================================
+   VIX
+========================================================= */
+
+function isVixLow(){
+
+    return (
+        vixValue>0 &&
+        vixValue<14
+    );
+
+}
+
+
+function isVixFiveDayCondition(){
+
+    if(vixHistory.length<5)
+        return false;
+
+    const last5=
+        vixHistory.slice(-5);
+
+    return last5.every(
+        v =>
+            Number(v)>=14 &&
+            Number(v)<=14.5
+    );
+
+}
+
+
+/* =========================================================
+   지수 BB 조건
+========================================================= */
+
+function indexBBCondition(){
+
+    const sp=
+        indexData["^GSPC"];
+
+    const nd=
+        indexData["^NDX"];
+
+    const spTouch=
+        (
+            sp.daily &&
+            sp.price>=sp.daily.upper
+        )
+        ||
+        (
+            sp.weekly &&
+            sp.price>=sp.weekly.upper
+        );
+
+    const ndTouch=
+        (
+            nd.daily &&
+            nd.price>=nd.daily.upper
+        )
+        ||
+        (
+            nd.weekly &&
+            nd.price>=nd.weekly.upper
+        );
+
+    return !!(
+        spTouch ||
+        ndTouch
+    );
+
+}
+
+
+/* =========================================================
+   Alert
+========================================================= */
+
+function updateAlert(){
+
+    const alert=
+        document.getElementById(
+            "alertBox"
+        );
+
+    const title=
+        document.getElementById(
+            "alertTitle"
+        );
+
+    const desc=
+        document.getElementById(
+            "alertDesc"
+        );
+
+    const mode=
+        document.getElementById(
+            "modeTag"
+        );
+
+    const vixCondition=
+        isVixLow()
+        ||
+        isVixFiveDayCondition();
+
+    const bbCondition=
+        indexBBCondition();
+
+    let profile="normal";
+
+    if(
+        vixCondition &&
+        bbCondition
+    ){
+
+        alert.className=
+            "alert danger";
+
+        title.innerHTML=
+            "🚨 고점 과열";
+
+        desc.innerText=
+            "VIX 저변동성 조건과 S&P 500/Nasdaq 100의 BB(2.5σ) 상단 조건이 동시에 충족되었습니다. 주식 비중을 일부 축소하고 현금·금 확대를 검토할 구간입니다.";
+
+        mode.innerText=
+            "🚨 과열 방어 모드";
+
+        mode.style.color="#ef4444";
+
+        profile="danger";
+
+    }
+
+    else if(
+        vixCondition ||
+        bbCondition
+    ){
+
+        alert.className=
+            "alert warning";
+
+        title.innerHTML=
+            "🟡 고점 주의";
+
+        desc.innerText=
+            "VIX 저변동성 또는 주요 지수의 BB(2.5σ) 상단 터치가 확인되었습니다. 신규 매수를 서두르기보다 일부 현금 확보를 고려하세요.";
+
+        mode.innerText=
+            "🟡 경계 모드";
+
+        mode.style.color="#f59e0b";
+
+        profile="warning";
+
+    }
+
+    else{
+
+        alert.className=
+            "alert";
+
+        title.innerHTML=
+            "🟢 정상";
+
+        desc.innerText=
+            "현재 설정한 VIX 및 BB(2.5σ) 과열 조건이 충족되지 않았습니다.";
+
+        mode.innerText=
+            "🟢 정상 모드";
+
+        mode.style.color="#22c55e";
+
+        profile="normal";
+
+    }
+
+    currentProfile=profile;
+
+    portfolio.forEach(
+        asset=>{
+
+            asset.target=
+                targetProfiles[
+                    profile
+                ][asset.key];
+
+        }
+    );
+
+    calculatePortfolio();
+
+}
+
+
+/* =========================================================
+   Donut Gradient
+========================================================= */
+
+function makeGradient(values){
+
+    let start=0;
+
+    const stops=[];
+
+    portfolio.forEach(
+        (asset,i)=>{
+
+            const pct=
+                Math.max(
+                    0,
+                    Number(values[i]) || 0
+                );
+
+            const end=
+                start+pct;
+
+            stops.push(
+                `${asset.color} ${start}% ${end}%`
+            );
+
+            start=end;
+
+        }
+    );
+
+    if(start<100){
+
+        stops.push(
+            `#263449 ${start}% 100%`
+        );
+
+    }
+
+    return `
+        conic-gradient(
+            ${stops.join(",")}
+        )
+    `;
+
+}
+
+
+/* =========================================================
+   Donut Labels
+========================================================= */
+
+function createDonutLabels(
+    containerId,
+    values
+){
+
+    const container=
+        document.getElementById(
+            containerId
+        );
+
+    container.innerHTML="";
+
+    let cumulative=0;
+
+    values.forEach(
+        (pct,i)=>{
+
+            pct=Number(pct)||0;
+
+            if(pct<=0)
+                return;
+
+            const mid=
+                cumulative+
+                pct/2;
+
+            /*
+               원 중심 기준 각도.
+               -90도를 시작점으로 사용
+            */
+
+            const angle=
+                (mid/100)*360-90;
+
+            const rad=
+                angle*Math.PI/180;
+
+            /*
+               라벨을 도넛 중간 지점에 배치
+            */
+
+            const radius=43;
+
+            const x=
+                50+
+                radius*Math.cos(rad);
+
+            const y=
+                50+
+                radius*Math.sin(rad);
+
+            const label=
+                document.createElement("div");
+
+            label.className=
+                "donut-label";
+
+            label.style.left=
+                x+"%";
+
+            label.style.top=
+                y+"%";
+
+            label.innerText=
+                `${pct.toFixed(0)}%`;
+
+            container.appendChild(label);
+
+            cumulative+=pct;
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   Donuts
+========================================================= */
+
+function updateDonuts(){
+
+    const total=
+        portfolio.reduce(
+            (sum,a)=>
+                sum+
+                Math.max(
+                    0,
+                    Number(a.current)||0
+                ),
+            0
+        );
+
+    const currentPcts=
+        portfolio.map(
+            a =>
+                total>0
+                ?
+                Math.max(
+                    0,
+                    Number(a.current)||0
+                )/total*100
+                :
+                0
+        );
+
+    const targetPcts=
+        portfolio.map(
+            a =>
+                Math.max(
+                    0,
+                    Number(a.target)||0
+                )
+        );
+
+    document.getElementById(
+        "currentDonut"
+    ).style.background=
+        makeGradient(currentPcts);
+
+    document.getElementById(
+        "targetDonut"
+    ).style.background=
+        makeGradient(targetPcts);
+
+    document.getElementById(
+        "currentDonutCenter"
+    ).innerHTML=`
+        <strong>현재</strong>
+        ${money(total)}
+    `;
+
+    document.getElementById(
+        "targetDonutCenter"
+    ).innerHTML=`
+        <strong>목표</strong>
+        100%
+    `;
+
+    createDonutLabels(
+        "currentDonutLabels",
+        currentPcts
+    );
+
+    createDonutLabels(
+        "targetDonutLabels",
+        targetPcts
+    );
+
+}
+
+
+/* =========================================================
+   Portfolio
+========================================================= */
+
+function calculatePortfolio(){
+
+    const total=
+        parseFloat(
+            document.getElementById(
+                "totalAsset"
+            ).value
+        ) || 0;
+
+    const currentTotal=
+        portfolio.reduce(
+            (sum,a)=>
+                sum+
+                Math.max(
+                    0,
+                    Number(a.current)||0
+                ),
+            0
+        );
+
+    const difference=
+        total-currentTotal;
+
+    const warning=
+        document.getElementById(
+            "portfolioWarning"
+        );
+
+    if(
+        Math.abs(difference)>1000
+    ){
+
+        warning.style.display="block";
+
+        warning.innerHTML=
+            `⚠️ 총 평가자산과 자산별 현재금액 합계가
+            <strong>${money(Math.abs(difference))}</strong>
+            만큼 차이납니다.
+            조정금액은 입력한 총 평가자산을 기준으로 계산됩니다.`;
+
+    }
+    else{
+
+        warning.style.display="none";
+
+    }
+
+    const tbody=
+        document.getElementById(
+            "rebalanceTable"
+        );
+
+    tbody.innerHTML="";
+
+    portfolio.forEach(
+        (asset,index)=>{
+
+            const currentPct=
+                total>0
+                ?
+                asset.current/
+                total*100
+                :
+                0;
+
+            const targetValue=
+                total*
+                asset.target/
+                100;
+
+            const diff=
+                targetValue-
+                asset.current;
+
+            let action="";
+
+            if(diff>10000){
+
+                action=
+                    `<span class="action-buy">
+                        +${money(diff)}
+                    </span>`;
+
+            }
+
+            else if(diff<-10000){
+
+                action=
+                    `<span class="action-sell">
+                        ${money(diff)}
+                    </span>`;
+
+            }
+
+            else{
+
+                action=
+                    `<span class="action-hold">
+                        유지
+                    </span>`;
+
+            }
+
+            const tr=
+                document.createElement("tr");
+
+            tr.innerHTML=`
+
+                <td>
+
+                    <span
+                        class="dot"
+                        style="
+                            display:inline-block;
+                            background:${asset.color};
+                            margin-right:4px
+                        ">
+                    </span>
+
+                    ${asset.name}
+
+                </td>
+
+                <td>
+                    ${currentPct.toFixed(1)}%
+                </td>
+
+                <td>
+
+                    <input
+                        class="pct-input"
+                        type="number"
+                        min="0"
+                        max="100"
+                        value="${asset.target}"
+                        onchange="
+                            changeTarget(
+                                ${index},
+                                this.value
+                            )
+                        "
+                    >%
+
+                </td>
+
+                <td>
+
+                    <input
+                        class="money-input"
+                        type="number"
+                        min="0"
+                        value="${Math.round(
+                            asset.current
+                        )}"
+                        onchange="
+                            changeCurrent(
+                                ${index},
+                                this.value
+                            )
+                        "
+                    >
+
+                </td>
+
+                <td>
+                    ${money(targetValue)}
+                </td>
+
+                <td>
+                    ${action}
+                </td>
+
+            `;
+
+            tbody.appendChild(tr);
+
+        }
+    );
+
+    updateDonuts();
+
+}
+
+
+/* =========================================================
+   Portfolio 수정
+========================================================= */
+
+function changeCurrent(index,value){
+
+    const num=
+        parseFloat(value);
+
+    if(Number.isFinite(num)){
+
+        portfolio[index].current=
+            Math.max(
+                0,
+                num
+            );
+
+        calculatePortfolio();
+
+    }
+
+}
+
+
+function changeTarget(index,value){
+
+    const num=
+        parseFloat(value);
+
+    if(Number.isFinite(num)){
+
+        portfolio[index].target=
+            Math.max(
+                0,
+                num
+            );
+
+        calculatePortfolio();
+
+    }
+
+}
+
+
+/* =========================================================
+   PER
+========================================================= */
+
+function renderPER(){
+
+    const tbody=
+        document.getElementById(
+            "perTable"
+        );
+
+    tbody.innerHTML="";
+
+    perData.forEach(
+        item=>{
+
+            const premium=
+                (
+                    item.current/
+                    item.avg-1
+                )*100;
+
+            const forwardImprovement=
+                (
+                    item.current/
+                    item.forward-1
+                )*100;
+
+            let evaluation;
+
+            if(premium>=10){
+
+                evaluation=
+                    `<span class="down">
+                        고평가
+                        +${premium.toFixed(1)}%
+                    </span>`;
+
+            }
+
+            else if(premium<=-10){
+
+                evaluation=
+                    `<span class="up">
+                        저평가
+                        ${premium.toFixed(1)}%
+                    </span>`;
+
+            }
+
+            else{
+
+                evaluation=
+                    `<span class="watch">
+                        평균권
+                        ${premium>=0?"+":""}${premium.toFixed(1)}%
+                    </span>`;
+
+            }
+
+            const tr=
+                document.createElement("tr");
+
+            tr.innerHTML=`
+
+                <td>
+                    ${item.name}
+                </td>
+
+                <td>
+                    ${item.current.toFixed(1)}x
+                </td>
+
+                <td class="up">
+                    ${item.forward.toFixed(1)}x
+                </td>
+
+                <td>
+                    ${item.avg.toFixed(1)}x
+                </td>
+
+                <td>
+
+                    ${evaluation}
+
+                    <br>
+
+                    <span class="small">
+                        Forward 괴리
+                        ${forwardImprovement.toFixed(1)}%
+                    </span>
+
+                </td>
+
+            `;
+
+            tbody.appendChild(tr);
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   JSON 데이터 적용
+========================================================= */
+
+function applyMarketData(data){
+
+    if(!data)
+        return false;
+
+    /* VIX */
+
+    if(
+        data.vix &&
+        Number.isFinite(
+            Number(data.vix.price)
+        )
+    ){
+
+        vixValue=
+            Number(
+                data.vix.price
+            );
+
+        vixHistory=
+            Array.isArray(
+                data.vix.history
+            )
+            ?
+            data.vix.history
+                .map(Number)
+                .filter(Number.isFinite)
+            :
+            [];
+
+        document.getElementById(
+            "vixValue"
+        ).innerText=
+            vixValue.toFixed(2);
+
+    }
+
+
+    /* Indices */
+
+    if(data.indices){
+
+        Object.entries(
+            data.indices
+        )
+        .forEach(
+            ([symbol,value])=>{
+
+                if(
+                    indexData[symbol]
+                ){
+
+                    indexData[symbol].price=
+                        Number(value.price)||0;
+
+                    indexData[symbol].daily=
+                        value.daily || null;
+
+                    indexData[symbol].weekly=
+                        value.weekly || null;
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /* Stocks */
+
+    if(data.stocks){
+
+        Object.entries(
+            data.stocks
+        )
+        .forEach(
+            ([ticker,value])=>{
+
+                if(!stockData[ticker]){
+
+                    stockData[ticker]={
+
+                        name:
+                            ticker.endsWith(".KS")
+                            ?
+                            ticker.replace(".KS","")
+                            :
+                            ticker,
+
+                        price:0,
+                        daily:null,
+                        weekly:null
+
+                    };
+
+                }
+
+                stockData[ticker].price=
+                    Number(value.price)||0;
+
+                stockData[ticker].daily=
+                    value.daily || null;
+
+                stockData[ticker].weekly=
+                    value.weekly || null;
+
+            }
+        );
+
+    }
+
+    return true;
+
+}
+
+
+/* =========================================================
+   JSON 로딩
+========================================================= */
+
+async function loadMarketData(manual=false){
+
+    const status=
+        document.getElementById(
+            "apiStatus"
+        );
+
+    status.innerText=
+        "조회 중...";
+
+    status.style.color=
+        "#f59e0b";
+
+    try{
+
+        /*
+           cache 방지
+        */
+
+        const url=
+            "./market-data.json?t="+
+            Date.now();
+
+        const response=
+            await fetch(
+                url,
+                {
+                    cache:"no-store"
+                }
+            );
+
+        if(!response.ok){
+
+            throw new Error(
+                "market-data.json HTTP "+
+                response.status
+            );
+
+        }
+
+        const data=
+            await response.json();
+
+        applyMarketData(data);
+
+        renderIndex();
+
+        renderStocks();
+
+        updateAlert();
+
+        if(data.generatedAt){
+
+            const date=
+                new Date(
+                    data.generatedAt
+                );
+
+            document.getElementById(
+                "dataTime"
+            ).innerText=
+                "데이터 생성: "+
+                date.toLocaleString(
+                    "ko-KR"
+                );
+
+        }
+
+        status.innerText=
+            "🟢 데이터 정상";
+
+        status.style.color=
+            "#22c55e";
+
+    }
+
+    catch(error){
+
+        console.error(
+            "Market data error:",
+            error
+        );
+
+        status.innerText=
+            "🔴 데이터 파일 오류";
+
+        status.style.color=
+            "#ef4444";
+
+        document.getElementById(
+            "alertTitle"
+        ).innerText=
+            "⚠️ 시장 데이터 확인 필요";
+
+        document.getElementById(
+            "alertDesc"
+        ).innerText=
+            "market-data.json을 불러오지 못했습니다. GitHub Actions 실행 여부와 파일 위치를 확인하세요.";
+
+    }
+
+}
+
+
+/* =========================================================
+   초기 실행
+========================================================= */
+
+loadLocalStocks();
+
+renderPER();
+
+renderIndex();
+
+renderStocks();
+
+calculatePortfolio();
+
+loadMarketData();
+
+</script>
+
+</body>
+</html>
