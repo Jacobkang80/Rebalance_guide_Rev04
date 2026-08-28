@@ -1,0 +1,2562 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Rebalancing Pro</title>
+
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+:root{
+    --bg:#0b1120;
+    --card:#151f32;
+    --card2:#101827;
+    --border:#26344d;
+    --text:#f8fafc;
+    --muted:#94a3b8;
+    --blue:#38bdf8;
+    --green:#22c55e;
+    --yellow:#f59e0b;
+    --red:#ef4444;
+    --purple:#a855f7;
+
+    --domestic:#3b82f6;
+    --overseas:#10b981;
+    --gold:#f59e0b;
+    --cash:#a855f7;
+}
+
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+    font-family:'Pretendard',system-ui,sans-serif;
+}
+
+body{
+    background:
+        radial-gradient(circle at top right,rgba(56,189,248,.08),transparent 30%),
+        var(--bg);
+    color:var(--text);
+    max-width:760px;
+    margin:auto;
+    padding:18px 12px 40px;
+    line-height:1.5;
+}
+
+header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    margin-bottom:18px;
+}
+
+h1{
+    font-size:1.35rem;
+    font-weight:800;
+}
+
+.header-sub{
+    font-size:.75rem;
+    color:var(--muted);
+    margin-top:3px;
+}
+
+button{
+    cursor:pointer;
+}
+
+.refresh{
+    border:0;
+    border-radius:20px;
+    padding:9px 13px;
+    color:white;
+    font-size:.78rem;
+    font-weight:700;
+    background:linear-gradient(135deg,#4f46e5,#9333ea);
+}
+
+.card{
+    background:rgba(21,31,50,.95);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:16px;
+    margin-bottom:15px;
+    box-shadow:0 8px 30px rgba(0,0,0,.15);
+}
+
+.card-title{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:8px;
+    font-size:.94rem;
+    font-weight:800;
+    margin-bottom:12px;
+}
+
+.subtitle{
+    color:var(--muted);
+    font-size:.7rem;
+    font-weight:500;
+}
+
+.status{
+    font-size:.7rem;
+    padding:3px 7px;
+    border-radius:6px;
+    background:rgba(255,255,255,.07);
+    color:var(--muted);
+}
+
+/* VIX */
+
+.vix-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:13px;
+}
+
+.vix-label{
+    color:var(--muted);
+    font-size:.78rem;
+    font-weight:700;
+}
+
+.vix-value{
+    font-size:2rem;
+    font-weight:900;
+    color:var(--yellow);
+}
+
+.alert{
+    border-radius:12px;
+    padding:13px;
+    background:rgba(34,197,94,.08);
+    border:1px solid rgba(34,197,94,.25);
+}
+
+.alert.warning{
+    background:rgba(245,158,11,.1);
+    border-color:rgba(245,158,11,.35);
+}
+
+.alert.danger{
+    background:rgba(239,68,68,.12);
+    border-color:rgba(239,68,68,.4);
+}
+
+.alert-title{
+    font-size:.9rem;
+    font-weight:800;
+    margin-bottom:4px;
+}
+
+.alert-desc{
+    color:#cbd5e1;
+    font-size:.75rem;
+}
+
+.vix-detail{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:7px;
+    margin-top:10px;
+}
+
+.vix-box{
+    background:rgba(255,255,255,.035);
+    border-radius:9px;
+    padding:8px;
+    text-align:center;
+}
+
+.vix-box-label{
+    display:block;
+    font-size:.65rem;
+    color:var(--muted);
+}
+
+.vix-box-value{
+    display:block;
+    margin-top:2px;
+    font-size:.78rem;
+    font-weight:800;
+}
+
+/* table */
+
+.table-wrap{
+    width:100%;
+    overflow-x:auto;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:.76rem;
+}
+
+th{
+    color:var(--muted);
+    font-weight:600;
+    font-size:.67rem;
+    white-space:nowrap;
+}
+
+th,td{
+    padding:9px 5px;
+    border-bottom:1px solid rgba(255,255,255,.055);
+}
+
+td{
+    font-weight:650;
+    white-space:nowrap;
+}
+
+.right{
+    text-align:right;
+}
+
+.touch{
+    color:#f87171;
+    font-weight:800;
+}
+
+.normal{
+    color:#4ade80;
+    font-weight:700;
+}
+
+.badge{
+    display:inline-block;
+    padding:3px 7px;
+    border-radius:10px;
+    font-size:.64rem;
+}
+
+.badge-red{
+    background:rgba(239,68,68,.16);
+    color:#f87171;
+}
+
+.badge-green{
+    background:rgba(34,197,94,.12);
+    color:#4ade80;
+}
+
+.price{
+    color:#f8fafc;
+    font-weight:800;
+}
+
+.band{
+    color:#94a3b8;
+    font-size:.68rem;
+}
+
+.distance{
+    font-size:.65rem;
+    color:#38bdf8;
+}
+
+/* search */
+
+.search{
+    display:flex;
+    gap:7px;
+    margin-bottom:10px;
+}
+
+.search input{
+    flex:1;
+    min-width:0;
+    background:#0b1220;
+    border:1px solid var(--border);
+    border-radius:8px;
+    color:white;
+    padding:9px 10px;
+    font-size:.78rem;
+}
+
+.add-btn{
+    background:#334155;
+    color:white;
+    border:0;
+    border-radius:8px;
+    padding:0 13px;
+    font-weight:700;
+}
+
+/* donuts */
+
+.donuts{
+    display:flex;
+    justify-content:space-around;
+    align-items:center;
+    padding:10px 0 15px;
+}
+
+.donut-wrap{
+    text-align:center;
+}
+
+.donut{
+    width:115px;
+    height:115px;
+    border-radius:50%;
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.donut::after{
+    content:'';
+    width:67px;
+    height:67px;
+    border-radius:50%;
+    background:var(--card);
+    position:absolute;
+}
+
+.donut-text{
+    position:relative;
+    z-index:2;
+    font-size:.7rem;
+    font-weight:800;
+    text-align:center;
+}
+
+.donut-label{
+    color:var(--muted);
+    font-size:.72rem;
+    margin-bottom:6px;
+    display:block;
+}
+
+/* rebalance */
+
+.asset-input{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:#0c1422;
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:9px 10px;
+    margin-bottom:10px;
+}
+
+.asset-input label{
+    font-size:.75rem;
+    color:var(--muted);
+    font-weight:700;
+}
+
+.asset-input input{
+    width:145px;
+    background:#0b1220;
+    border:1px solid var(--blue);
+    color:white;
+    border-radius:6px;
+    padding:6px 8px;
+    text-align:right;
+    font-weight:800;
+}
+
+.pct{
+    width:48px;
+    background:#0b1220;
+    color:white;
+    border:1px solid var(--border);
+    border-radius:5px;
+    padding:4px;
+    text-align:center;
+    font-weight:700;
+}
+
+.buy{
+    color:#4ade80;
+    font-weight:800;
+}
+
+.sell{
+    color:#f87171;
+    font-weight:800;
+}
+
+.rules{
+    margin-top:10px;
+    background:rgba(255,255,255,.03);
+    border-radius:9px;
+    padding:10px;
+    color:var(--muted);
+    font-size:.68rem;
+    line-height:1.55;
+}
+
+.legend{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:7px;
+    font-size:.68rem;
+    color:var(--muted);
+    margin-bottom:10px;
+}
+
+.legend span{
+    display:inline-block;
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    margin-right:5px;
+}
+
+.footer{
+    text-align:center;
+    color:#64748b;
+    font-size:.65rem;
+    padding:8px;
+}
+
+.error{
+    color:#f87171;
+    font-size:.68rem;
+}
+
+@media(max-width:520px){
+    body{
+        padding:14px 9px 30px;
+    }
+
+    .card{
+        padding:13px;
+    }
+
+    h1{
+        font-size:1.2rem;
+    }
+
+    .refresh{
+        padding:8px 10px;
+        font-size:.68rem;
+    }
+
+    table{
+        font-size:.7rem;
+    }
+
+    th,td{
+        padding:8px 4px;
+    }
+
+    .donut{
+        width:100px;
+        height:100px;
+    }
+
+    .donut::after{
+        width:58px;
+        height:58px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <div>
+        <h1>📊 스마트 리밸런싱 PRO</h1>
+        <div class="header-sub">
+            BB(2.5σ) · VIX · PER · 고점 과열 · 리밸런싱
+        </div>
+    </div>
+
+    <button class="refresh" onclick="refreshAll()">
+        ⚡ 갱신
+    </button>
+</header>
+
+
+<!-- =========================
+     VIX
+========================= -->
+
+<div class="card">
+
+    <div class="vix-top">
+        <div>
+            <div class="vix-label">
+                VIX 변동성 지수
+                <span id="vix-status" class="status">조회 중</span>
+            </div>
+        </div>
+
+        <div id="vix-value" class="vix-value">--.--</div>
+    </div>
+
+    <div id="alert-box" class="alert">
+        <div id="alert-title" class="alert-title">
+            🟢 데이터 조회 중
+        </div>
+
+        <div id="alert-desc" class="alert-desc">
+            시장 데이터를 가져오고 있습니다.
+        </div>
+    </div>
+
+    <div class="vix-detail">
+
+        <div class="vix-box">
+            <span class="vix-box-label">VIX 상태</span>
+            <span id="vix-state" class="vix-box-value">-</span>
+        </div>
+
+        <div class="vix-box">
+            <span class="vix-box-label">14~14.5 연속</span>
+            <span id="vix-streak" class="vix-box-value">-</span>
+        </div>
+
+        <div class="vix-box">
+            <span class="vix-box-label">BB 과열지수</span>
+            <span id="bb-count" class="vix-box-value">0 / 4</span>
+        </div>
+
+    </div>
+
+    <div class="rules">
+        <b>고점 과열 경보 기준</b><br>
+        ① VIX &lt; 14 또는 VIX 14~14.5가 5거래일 연속<br>
+        ② S&P500 또는 Nasdaq100이 일봉/주봉 BB(2.5σ) 상단 터치<br>
+        <br>
+        <b>위험 모드:</b> 두 조건 모두 충족<br>
+        <b>주의 모드:</b> 둘 중 하나만 충족
+    </div>
+
+</div>
+
+
+<!-- =========================
+     INDEX BB
+========================= -->
+
+<div class="card">
+
+    <div class="card-title">
+        <span>📈 주요 지수 BB(2.5σ)</span>
+        <span id="index-count" class="subtitle">0 / 6</span>
+    </div>
+
+    <div class="table-wrap">
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>지수</th>
+                    <th class="right">현재가</th>
+                    <th class="right">일봉 상단</th>
+                    <th class="right">주봉 상단</th>
+                    <th class="right">상태</th>
+                </tr>
+            </thead>
+
+            <tbody id="index-table"></tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     WATCHLIST
+========================= -->
+
+<div class="card">
+
+    <div class="card-title">
+        <span>⭐ 관심 종목 BB(2.5σ)</span>
+        <span class="subtitle">종목 추가 가능</span>
+    </div>
+
+    <div class="search">
+
+        <input
+            id="ticker-input"
+            placeholder="NVDA / AAPL / 005930.KS"
+            onkeydown="if(event.key==='Enter') addTicker()"
+        >
+
+        <button class="add-btn" onclick="addTicker()">
+            + 추가
+        </button>
+
+    </div>
+
+    <div class="table-wrap">
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>종목</th>
+                    <th class="right">현재가</th>
+                    <th class="right">일봉 BB</th>
+                    <th class="right">주봉 BB</th>
+                    <th class="right">삭제</th>
+                </tr>
+            </thead>
+
+            <tbody id="stock-table"></tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     PER
+========================= -->
+
+<div class="card">
+
+    <div class="card-title">
+        <span>📊 지수 밸류에이션</span>
+        <span class="subtitle">현재 PER vs 과거 평균</span>
+    </div>
+
+    <div class="table-wrap">
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>지수</th>
+                    <th class="right">현재</th>
+                    <th class="right">평균</th>
+                    <th class="right">괴리</th>
+                    <th class="right">판단</th>
+                </tr>
+            </thead>
+
+            <tbody id="per-table"></tbody>
+
+        </table>
+
+    </div>
+
+    <div class="rules">
+        PER 데이터는 Yahoo Finance의 실시간 가격 데이터와 달리
+        무료 공개 API에서 안정적인 실시간 Forward PER을 제공하지 않기 때문에
+        현재 버전에서는 직접 입력/수정 가능한 분석값으로 구성했습니다.
+    </div>
+
+</div>
+
+
+<!-- =========================
+     REBALANCING
+========================= -->
+
+<div class="card">
+
+    <div class="card-title">
+
+        <span>⚖️ 스마트 리밸런싱</span>
+
+        <span id="mode" class="subtitle">
+            🟢 정상 모드
+        </span>
+
+    </div>
+
+
+    <div class="donuts">
+
+        <div class="donut-wrap">
+
+            <span class="donut-label">현재 비중</span>
+
+            <div id="current-donut" class="donut">
+                <span class="donut-text">
+                    CURRENT
+                </span>
+            </div>
+
+        </div>
+
+
+        <div class="donut-wrap">
+
+            <span class="donut-label">추천 비중</span>
+
+            <div id="target-donut" class="donut">
+                <span class="donut-text">
+                    TARGET
+                </span>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="legend">
+
+        <div>
+            <span style="background:var(--domestic)"></span>
+            국내주식
+        </div>
+
+        <div>
+            <span style="background:var(--overseas)"></span>
+            해외주식
+        </div>
+
+        <div>
+            <span style="background:var(--gold)"></span>
+            금
+        </div>
+
+        <div>
+            <span style="background:var(--cash)"></span>
+            달러/현금
+        </div>
+
+    </div>
+
+
+    <div class="asset-input">
+
+        <label>총 평가자산</label>
+
+        <div>
+            <input
+                id="total-assets"
+                type="number"
+                value="100000000"
+                step="1000000"
+                oninput="calculateRebalance()"
+            >
+            원
+        </div>
+
+    </div>
+
+
+    <div class="table-wrap">
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>자산</th>
+                    <th class="right">현재%</th>
+                    <th class="right">목표%</th>
+                    <th class="right">조정금액</th>
+                </tr>
+            </thead>
+
+            <tbody id="rebalance-table"></tbody>
+
+        </table>
+
+    </div>
+
+
+    <div class="rules">
+
+        <b>정상:</b> 국내 35 / 해외 45 / 금 10 / 현금 10<br>
+
+        <b>주의:</b> 국내 30 / 해외 35 / 금 15 / 현금 20<br>
+
+        <b>위험:</b> 국내 20 / 해외 25 / 금 25 / 현금 30
+
+    </div>
+
+</div>
+
+
+<div class="footer">
+    Smart Rebalancing PRO · Yahoo Finance market data
+</div>
+
+
+<script>
+
+/* =========================================================
+   기본 데이터
+========================================================= */
+
+const indexData = {
+
+    "^GSPC":{
+        name:"S&P 500",
+        price:0,
+        dailyUpper:0,
+        weeklyUpper:0,
+        dailyTouch:false,
+        weeklyTouch:false,
+        ok:false
+    },
+
+    "^NDX":{
+        name:"Nasdaq 100",
+        price:0,
+        dailyUpper:0,
+        weeklyUpper:0,
+        dailyTouch:false,
+        weeklyTouch:false,
+        ok:false
+    },
+
+    "^KS11":{
+        name:"KOSPI",
+        price:0,
+        dailyUpper:0,
+        weeklyUpper:0,
+        dailyTouch:false,
+        weeklyTouch:false,
+        ok:false
+    }
+};
+
+
+let stocks = {
+
+    "NVDA":{
+        name:"NVDA",
+        price:0,
+        dailyUpper:0,
+        weeklyUpper:0,
+        dailyTouch:false,
+        weeklyTouch:false,
+        ok:false
+    },
+
+    "AAPL":{
+        name:"AAPL",
+        price:0,
+        dailyUpper:0,
+        weeklyUpper:0,
+        dailyTouch:false,
+        weeklyTouch:false,
+        ok:false
+    },
+
+    "005930.KS":{
+        name:"삼성전자",
+        price:0,
+        dailyUpper:0,
+        weeklyUpper:0,
+        dailyTouch:false,
+        weeklyTouch:false,
+        ok:false
+    }
+
+};
+
+
+/* =========================================================
+   PER 분석값
+========================================================= */
+
+const perData = [
+
+    {
+        name:"S&P 500",
+        current:26.2,
+        average:24.5
+    },
+
+    {
+        name:"Nasdaq 100",
+        current:28.4,
+        average:28.0
+    },
+
+    {
+        name:"KOSPI 200",
+        current:10.6,
+        average:11.2
+    }
+
+];
+
+
+/* =========================================================
+   포트폴리오
+========================================================= */
+
+let portfolio = [
+
+    {
+        key:"domestic",
+        name:"국내주식",
+        current:35,
+        target:35,
+        color:"#3b82f6"
+    },
+
+    {
+        key:"overseas",
+        name:"해외주식",
+        current:45,
+        target:45,
+        color:"#10b981"
+    },
+
+    {
+        key:"gold",
+        name:"금 (Gold)",
+        current:10,
+        target:10,
+        color:"#f59e0b"
+    },
+
+    {
+        key:"cash",
+        name:"달러/현금",
+        current:10,
+        target:10,
+        color:"#a855f7"
+    }
+
+];
+
+
+const profiles = {
+
+    normal:{
+        domestic:35,
+        overseas:45,
+        gold:10,
+        cash:10
+    },
+
+    warning:{
+        domestic:30,
+        overseas:35,
+        gold:15,
+        cash:20
+    },
+
+    danger:{
+        domestic:20,
+        overseas:25,
+        gold:25,
+        cash:30
+    }
+
+};
+
+
+/* =========================================================
+   Yahoo Finance API
+========================================================= */
+
+async function yahooRequest(symbol, interval, range){
+
+    const url =
+        "https://query1.finance.yahoo.com/v8/finance/chart/" +
+        encodeURIComponent(symbol) +
+        "?interval=" + interval +
+        "&range=" + range;
+
+    /*
+     * 1차: Yahoo 직접
+     * 2차: allorigins
+     * 3차: corsproxy
+     */
+
+    const urls = [
+
+        url,
+
+        "https://api.allorigins.win/raw?url=" +
+        encodeURIComponent(url),
+
+        "https://corsproxy.io/?" +
+        encodeURIComponent(url)
+
+    ];
+
+
+    for(const target of urls){
+
+        try{
+
+            const response =
+                await fetch(target,{
+                    cache:"no-store"
+                });
+
+            if(!response.ok) continue;
+
+            const json = await response.json();
+
+            if(
+                json &&
+                json.chart &&
+                json.chart.result &&
+                json.chart.result[0]
+            ){
+
+                return json.chart.result[0];
+
+            }
+
+        }catch(error){
+
+            console.warn(
+                "Yahoo request failed:",
+                symbol,
+                target,
+                error
+            );
+
+        }
+
+    }
+
+    return null;
+
+}
+
+
+/* =========================================================
+   종가 추출
+========================================================= */
+
+function getCloses(result){
+
+    if(!result) return [];
+
+    const quote =
+        result.indicators &&
+        result.indicators.quote &&
+        result.indicators.quote[0];
+
+    if(!quote || !quote.close) return [];
+
+    return quote.close
+        .filter(v =>
+            typeof v === "number" &&
+            Number.isFinite(v)
+        );
+
+}
+
+
+/* =========================================================
+   BB 2.5σ
+========================================================= */
+
+function calculateBB(closes, period=20, multiplier=2.5){
+
+    if(!closes || closes.length < period){
+
+        return null;
+
+    }
+
+    const data =
+        closes.slice(-period);
+
+    const mean =
+        data.reduce((a,b)=>a+b,0) /
+        data.length;
+
+    const variance =
+        data.reduce(
+            (sum,v)=>sum + Math.pow(v-mean,2),
+            0
+        ) /
+        data.length;
+
+    const sd =
+        Math.sqrt(variance);
+
+    return {
+
+        middle:mean,
+
+        upper:
+            mean + multiplier * sd,
+
+        lower:
+            mean - multiplier * sd
+
+    };
+
+}
+
+
+/* =========================================================
+   한 종목 데이터
+========================================================= */
+
+async function fetchAsset(symbol){
+
+    /*
+     * 일봉
+     */
+
+    const dailyResult =
+        await yahooRequest(
+            symbol,
+            "1d",
+            "6mo"
+        );
+
+
+    /*
+     * 주봉
+     *
+     * 기존 코드의
+     * "일봉 5개마다 하나 추출"
+     * 방식 제거
+     */
+
+    const weeklyResult =
+        await yahooRequest(
+            symbol,
+            "1wk",
+            "2y"
+        );
+
+
+    if(!dailyResult){
+
+        return {
+            ok:false
+        };
+
+    }
+
+
+    const dailyCloses =
+        getCloses(dailyResult);
+
+    const weeklyCloses =
+        getCloses(weeklyResult);
+
+
+    if(dailyCloses.length < 20){
+
+        return {
+            ok:false
+        };
+
+    }
+
+
+    const dailyBB =
+        calculateBB(
+            dailyCloses,
+            20,
+            2.5
+        );
+
+
+    const weeklyBB =
+        calculateBB(
+            weeklyCloses,
+            20,
+            2.5
+        );
+
+
+    /*
+     * Yahoo 현재가
+     */
+
+    let price = 0;
+
+
+    if(
+        dailyResult.meta &&
+        typeof dailyResult.meta.regularMarketPrice === "number"
+    ){
+
+        price =
+            dailyResult.meta.regularMarketPrice;
+
+    }else{
+
+        price =
+            dailyCloses[dailyCloses.length-1];
+
+    }
+
+
+    return {
+
+        ok:true,
+
+        price:price,
+
+        dailyUpper:
+            dailyBB ? dailyBB.upper : 0,
+
+        weeklyUpper:
+            weeklyBB ? weeklyBB.upper : 0,
+
+        dailyTouch:
+            dailyBB ? price >= dailyBB.upper : false,
+
+        weeklyTouch:
+            weeklyBB ? price >= weeklyBB.upper : false
+
+    };
+
+}
+
+
+/* =========================================================
+   VIX
+========================================================= */
+
+let vix = {
+
+    value:0,
+
+    streak:0,
+
+    ok:false
+
+};
+
+
+async function fetchVIX(){
+
+    /*
+     * VIX는 별도로 조회
+     */
+
+    const result =
+        await yahooRequest(
+            "^VIX",
+            "1d",
+            "3mo"
+        );
+
+
+    if(!result){
+
+        return false;
+
+    }
+
+
+    const closes =
+        getCloses(result);
+
+
+    if(closes.length === 0){
+
+        return false;
+
+    }
+
+
+    let current = 0;
+
+
+    if(
+        result.meta &&
+        typeof result.meta.regularMarketPrice === "number"
+    ){
+
+        current =
+            result.meta.regularMarketPrice;
+
+    }else{
+
+        current =
+            closes[closes.length-1];
+
+    }
+
+
+    /*
+     * 최근부터 거꾸로 확인
+     *
+     * 14.0 <= VIX <= 14.5
+     * 연속 거래일 계산
+     */
+
+    let streak = 0;
+
+
+    for(
+        let i=closes.length-1;
+        i>=0;
+        i--
+    ){
+
+        if(
+            closes[i] >= 14.0 &&
+            closes[i] <= 14.5
+        ){
+
+            streak++;
+
+        }else{
+
+            break;
+
+        }
+
+    }
+
+
+    vix.value =
+        current;
+
+    vix.streak =
+        streak;
+
+    vix.ok =
+        true;
+
+
+    return true;
+
+}
+
+
+/* =========================================================
+   가격 포맷
+========================================================= */
+
+function formatPrice(symbol,value){
+
+    if(!value || !Number.isFinite(value)){
+
+        return "--";
+
+    }
+
+
+    if(symbol.endsWith(".KS")){
+
+        return Math.round(value)
+            .toLocaleString("ko-KR") +
+            "원";
+
+    }
+
+
+    if(symbol.startsWith("^")){
+
+        return value.toLocaleString(
+            "en-US",
+            {
+                minimumFractionDigits:2,
+                maximumFractionDigits:2
+            }
+        );
+
+    }
+
+
+    return "$" +
+        value.toLocaleString(
+            "en-US",
+            {
+                minimumFractionDigits:2,
+                maximumFractionDigits:2
+            }
+        );
+
+}
+
+
+/* =========================================================
+   거리 계산
+========================================================= */
+
+function distanceText(price, upper){
+
+    if(
+        !price ||
+        !upper ||
+        !Number.isFinite(price) ||
+        !Number.isFinite(upper)
+    ){
+
+        return "";
+
+    }
+
+
+    const gap =
+        ((upper-price)/upper)*100;
+
+
+    if(price >= upper){
+
+        return "상단 돌파";
+
+    }
+
+
+    return "상단까지 " +
+        gap.toFixed(1) +
+        "%";
+
+}
+
+
+/* =========================================================
+   지수 테이블
+========================================================= */
+
+function renderIndexes(){
+
+    const tbody =
+        document.getElementById(
+            "index-table"
+        );
+
+
+    tbody.innerHTML = "";
+
+
+    let count = 0;
+
+
+    Object.entries(indexData)
+        .forEach(([symbol,item])=>{
+
+            if(item.dailyTouch) count++;
+
+            if(item.weeklyTouch) count++;
+
+
+            const tr =
+                document.createElement("tr");
+
+
+            const dailyClass =
+                item.dailyTouch ?
+                "badge badge-red" :
+                "badge badge-green";
+
+
+            const weeklyClass =
+                item.weeklyTouch ?
+                "badge badge-red" :
+                "badge badge-green";
+
+
+            tr.innerHTML = `
+
+                <td>
+                    <b>${item.name}</b>
+                </td>
+
+                <td class="right price">
+                    ${formatPrice(symbol,item.price)}
+                </td>
+
+                <td class="right">
+
+                    ${
+                        item.dailyUpper
+                        ?
+                        `<span class="band">
+                            ${formatPrice(symbol,item.dailyUpper)}
+                         </span>
+                         <br>
+                         <span class="distance">
+                            ${distanceText(item.price,item.dailyUpper)}
+                         </span>`
+                        :
+                        "--"
+                    }
+
+                    <br>
+
+                    <span class="${dailyClass}">
+                        ${item.dailyTouch ? "🔴 터치" : "🟢 정상"}
+                    </span>
+
+                </td>
+
+                <td class="right">
+
+                    ${
+                        item.weeklyUpper
+                        ?
+                        `<span class="band">
+                            ${formatPrice(symbol,item.weeklyUpper)}
+                         </span>
+                         <br>
+                         <span class="distance">
+                            ${distanceText(item.price,item.weeklyUpper)}
+                         </span>`
+                        :
+                        "--"
+                    }
+
+                    <br>
+
+                    <span class="${weeklyClass}">
+                        ${item.weeklyTouch ? "🔴 터치" : "🟢 정상"}
+                    </span>
+
+                </td>
+
+                <td class="right">
+
+                    ${
+                        !item.ok
+                        ?
+                        `<span class="error">조회실패</span>`
+                        :
+                        (
+                            item.dailyTouch ||
+                            item.weeklyTouch
+                            ?
+                            `<span class="touch">⚠ 과열</span>`
+                            :
+                            `<span class="normal">정상</span>`
+                        )
+                    }
+
+                </td>
+            `;
+
+
+            tbody.appendChild(tr);
+
+        });
+
+
+    document.getElementById(
+        "index-count"
+    ).innerText =
+        `${count} / 6`;
+
+}
+
+
+/* =========================================================
+   관심종목 테이블
+========================================================= */
+
+function renderStocks(){
+
+    const tbody =
+        document.getElementById(
+            "stock-table"
+        );
+
+
+    tbody.innerHTML = "";
+
+
+    Object.entries(stocks)
+        .forEach(([symbol,item])=>{
+
+            const tr =
+                document.createElement("tr");
+
+
+            tr.innerHTML = `
+
+                <td>
+                    <b>${item.name}</b>
+                </td>
+
+                <td class="right price">
+                    ${formatPrice(symbol,item.price)}
+                </td>
+
+                <td class="right">
+
+                    ${
+                        item.dailyUpper
+                        ?
+                        `<span class="band">
+                            ${formatPrice(symbol,item.dailyUpper)}
+                         </span><br>`
+                        :
+                        ""
+                    }
+
+                    <span class="${
+                        item.dailyTouch
+                        ? "touch"
+                        : "normal"
+                    }">
+
+                        ${
+                            item.dailyTouch
+                            ? "🔴 상단"
+                            : "🟢 정상"
+                        }
+
+                    </span>
+
+                </td>
+
+                <td class="right">
+
+                    ${
+                        item.weeklyUpper
+                        ?
+                        `<span class="band">
+                            ${formatPrice(symbol,item.weeklyUpper)}
+                         </span><br>`
+                        :
+                        ""
+                    }
+
+                    <span class="${
+                        item.weeklyTouch
+                        ? "touch"
+                        : "normal"
+                    }">
+
+                        ${
+                            item.weeklyTouch
+                            ? "🔴 상단"
+                            : "🟢 정상"
+                        }
+
+                    </span>
+
+                </td>
+
+                <td class="right">
+
+                    <button
+                        onclick="removeTicker('${symbol}')"
+                        style="
+                            background:none;
+                            border:0;
+                            color:#64748b;
+                            font-size:15px;
+                        "
+                    >
+                        ✕
+                    </button>
+
+                </td>
+            `;
+
+
+            tbody.appendChild(tr);
+
+        });
+
+}
+
+
+/* =========================================================
+   종목 추가
+========================================================= */
+
+async function addTicker(){
+
+    const input =
+        document.getElementById(
+            "ticker-input"
+        );
+
+
+    const ticker =
+        input.value
+        .trim()
+        .toUpperCase();
+
+
+    if(!ticker) return;
+
+
+    if(stocks[ticker]){
+
+        input.value = "";
+
+        return;
+
+    }
+
+
+    stocks[ticker] = {
+
+        name:ticker,
+
+        price:0,
+
+        dailyUpper:0,
+
+        weeklyUpper:0,
+
+        dailyTouch:false,
+
+        weeklyTouch:false,
+
+        ok:false
+
+    };
+
+
+    renderStocks();
+
+    input.value = "";
+
+
+    const data =
+        await fetchAsset(ticker);
+
+
+    if(data.ok){
+
+        stocks[ticker] = {
+
+            name:ticker,
+
+            ...data
+
+        };
+
+    }
+
+
+    saveWatchlist();
+
+    renderStocks();
+
+    evaluateMarket();
+
+}
+
+
+/* =========================================================
+   종목 삭제
+========================================================= */
+
+function removeTicker(symbol){
+
+    delete stocks[symbol];
+
+    saveWatchlist();
+
+    renderStocks();
+
+}
+
+
+/* =========================================================
+   Watchlist 저장
+========================================================= */
+
+function saveWatchlist(){
+
+    localStorage.setItem(
+        "smart-rebalancing-watchlist",
+        JSON.stringify(
+            Object.keys(stocks)
+        )
+    );
+
+}
+
+
+function loadWatchlist(){
+
+    try{
+
+        const saved =
+            JSON.parse(
+                localStorage.getItem(
+                    "smart-rebalancing-watchlist"
+                )
+            );
+
+
+        if(
+            Array.isArray(saved) &&
+            saved.length
+        ){
+
+            stocks = {};
+
+            saved.forEach(symbol=>{
+
+                stocks[symbol] = {
+
+                    name:
+                        symbol === "005930.KS"
+                        ? "삼성전자"
+                        : symbol,
+
+                    price:0,
+                    dailyUpper:0,
+                    weeklyUpper:0,
+                    dailyTouch:false,
+                    weeklyTouch:false,
+                    ok:false
+
+                };
+
+            });
+
+        }
+
+    }catch(e){
+
+        console.warn(e);
+
+    }
+
+}
+
+
+/* =========================================================
+   VIX 화면
+========================================================= */
+
+function renderVIX(){
+
+    const value =
+        document.getElementById(
+            "vix-value"
+        );
+
+    const status =
+        document.getElementById(
+            "vix-status"
+        );
+
+
+    if(!vix.ok){
+
+        value.innerText = "--.--";
+
+        status.innerText =
+            "조회 실패";
+
+        status.style.color =
+            "#f87171";
+
+        return;
+
+    }
+
+
+    value.innerText =
+        vix.value.toFixed(2);
+
+
+    status.innerText =
+        "연동 완료";
+
+    status.style.color =
+        "#4ade80";
+
+
+    document.getElementById(
+        "vix-streak"
+    ).innerText =
+        vix.streak >= 5
+        ? "5일 이상"
+        : `${vix.streak}일`;
+
+
+    let state;
+
+
+    if(vix.value < 14){
+
+        state =
+            "초저변동";
+
+    }else if(vix.value <= 14.5){
+
+        state =
+            "저변동";
+
+    }else if(vix.value < 20){
+
+        state =
+            "정상";
+
+    }else if(vix.value < 30){
+
+        state =
+            "불안";
+
+    }else{
+
+        state =
+            "공포";
+
+    }
+
+
+    document.getElementById(
+        "vix-state"
+    ).innerText =
+        state;
+
+}
+
+
+/* =========================================================
+   시장 과열 판단
+========================================================= */
+
+function evaluateMarket(){
+
+    const sp =
+        indexData["^GSPC"];
+
+    const ndx =
+        indexData["^NDX"];
+
+
+    /*
+     * VIX 조건
+     */
+
+    const vixCondition =
+        vix.ok &&
+        (
+            vix.value < 14 ||
+            (
+                vix.value >= 14 &&
+                vix.value <= 14.5 &&
+                vix.streak >= 5
+            )
+        );
+
+
+    /*
+     * S&P500 / Nasdaq100 BB 조건
+     */
+
+    const indexBBCondition =
+        (
+            sp.dailyTouch ||
+            sp.weeklyTouch ||
+            ndx.dailyTouch ||
+            ndx.weeklyTouch
+        );
+
+
+    let mode =
+        "normal";
+
+
+    if(
+        vixCondition &&
+        indexBBCondition
+    ){
+
+        mode =
+            "danger";
+
+    }else if(
+        vixCondition ||
+        indexBBCondition
+    ){
+
+        mode =
+            "warning";
+
+    }
+
+
+    /*
+     * BB touch count
+     */
+
+    let bbCount = 0;
+
+
+    Object.values(indexData)
+        .forEach(item=>{
+
+            if(item.dailyTouch)
+                bbCount++;
+
+            if(item.weeklyTouch)
+                bbCount++;
+
+        });
+
+
+    document.getElementById(
+        "bb-count"
+    ).innerText =
+        `${bbCount} / 6`;
+
+
+    /*
+     * 경보 표시
+     */
+
+    const box =
+        document.getElementById(
+            "alert-box"
+        );
+
+    const title =
+        document.getElementById(
+            "alert-title"
+        );
+
+    const desc =
+        document.getElementById(
+            "alert-desc"
+        );
+
+
+    box.className =
+        "alert";
+
+
+    if(mode === "danger"){
+
+        box.classList.add("danger");
+
+        title.innerText =
+            "🚨 고점 과열 경보";
+
+        desc.innerText =
+            "VIX 저변동 조건과 S&P500/Nasdaq100 BB(2.5σ) 상단 조건이 동시에 충족되었습니다. 주식 비중을 적극적으로 낮추고 현금·금 비중 확대를 검토하세요.";
+
+    }else if(mode === "warning"){
+
+        box.classList.add("warning");
+
+        title.innerText =
+            "🟡 고점 주의";
+
+        desc.innerText =
+            "VIX 저변동 또는 주요 지수 BB(2.5σ) 상단 조건 중 하나가 감지되었습니다. 신규 매수를 보수적으로 하고 일부 차익실현을 검토할 수 있습니다.";
+
+    }else{
+
+        title.innerText =
+            "🟢 정상 구간";
+
+        desc.innerText =
+            "현재 설정된 고점 과열 조건이 충족되지 않았습니다. 기존 성장형 포트폴리오를 유지합니다.";
+
+    }
+
+
+    const modeText =
+        document.getElementById(
+            "mode"
+        );
+
+
+    if(mode === "danger"){
+
+        modeText.innerText =
+            "🚨 위험 모드";
+
+        modeText.style.color =
+            "#ef4444";
+
+    }else if(mode === "warning"){
+
+        modeText.innerText =
+            "🟡 주의 모드";
+
+        modeText.style.color =
+            "#f59e0b";
+
+    }else{
+
+        modeText.innerText =
+            "🟢 정상 모드";
+
+        modeText.style.color =
+            "#22c55e";
+
+    }
+
+
+    /*
+     * 목표 비중 변경
+     */
+
+    const target =
+        profiles[mode];
+
+
+    portfolio.forEach(asset=>{
+
+        asset.target =
+            target[asset.key];
+
+    });
+
+
+    calculateRebalance();
+
+}
+
+
+/* =========================================================
+   PER
+========================================================= */
+
+function renderPER(){
+
+    const tbody =
+        document.getElementById(
+            "per-table"
+        );
+
+
+    tbody.innerHTML = "";
+
+
+    perData.forEach(item=>{
+
+        const gap =
+            ((item.current-item.average) /
+            item.average) * 100;
+
+
+        let judgement;
+
+
+        if(gap >= 10){
+
+            judgement =
+                `<span class="touch">고평가</span>`;
+
+        }else if(gap > 3){
+
+            judgement =
+                `<span style="color:#fbbf24">다소 고평가</span>`;
+
+        }else if(gap <= -5){
+
+            judgement =
+                `<span class="normal">저평가</span>`;
+
+        }else{
+
+            judgement =
+                `<span class="normal">적정</span>`;
+
+        }
+
+
+        const tr =
+            document.createElement("tr");
+
+
+        tr.innerHTML = `
+
+            <td>
+                <b>${item.name}</b>
+            </td>
+
+            <td class="right">
+                ${item.current.toFixed(1)}x
+            </td>
+
+            <td class="right">
+                ${item.average.toFixed(1)}x
+            </td>
+
+            <td class="right ${
+                gap > 0
+                ? "touch"
+                : "normal"
+            }">
+                ${gap >= 0 ? "+" : ""}
+                ${gap.toFixed(1)}%
+            </td>
+
+            <td class="right">
+                ${judgement}
+            </td>
+
+        `;
+
+
+        tbody.appendChild(tr);
+
+    });
+
+}
+
+
+/* =========================================================
+   도넛
+========================================================= */
+
+function updateDonuts(){
+
+    let current = 0;
+    let target = 0;
+
+
+    const currentStops =
+        portfolio.map(asset=>{
+
+            const start =
+                current;
+
+            current += asset.current;
+
+            return `${asset.color} ${start}% ${current}%`;
+
+        });
+
+
+    const targetStops =
+        portfolio.map(asset=>{
+
+            const start =
+                target;
+
+            target += asset.target;
+
+            return `${asset.color} ${start}% ${target}%`;
+
+        });
+
+
+    document.getElementById(
+        "current-donut"
+    ).style.background =
+        `conic-gradient(${currentStops.join(",")})`;
+
+
+    document.getElementById(
+        "target-donut"
+    ).style.background =
+        `conic-gradient(${targetStops.join(",")})`;
+
+}
+
+
+/* =========================================================
+   리밸런싱 계산
+========================================================= */
+
+function calculateRebalance(){
+
+    const total =
+        parseFloat(
+            document.getElementById(
+                "total-assets"
+            ).value
+        ) || 0;
+
+
+    const tbody =
+        document.getElementById(
+            "rebalance-table"
+        );
+
+
+    tbody.innerHTML = "";
+
+
+    portfolio.forEach((asset,index)=>{
+
+        const currentValue =
+            total *
+            asset.current /
+            100;
+
+
+        const targetValue =
+            total *
+            asset.target /
+            100;
+
+
+        const diff =
+            targetValue -
+            currentValue;
+
+
+        const tr =
+            document.createElement("tr");
+
+
+        let amount;
+
+
+        if(Math.abs(diff) >= 10000){
+
+            amount =
+                `${diff > 0 ? "+" : ""}` +
+                Math.round(diff/10000)
+                    .toLocaleString() +
+                "만원";
+
+        }else{
+
+            amount =
+                `${diff > 0 ? "+" : ""}` +
+                Math.round(diff)
+                    .toLocaleString() +
+                "원";
+
+        }
+
+
+        tr.innerHTML = `
+
+            <td>
+                <span style="
+                    display:inline-block;
+                    width:8px;
+                    height:8px;
+                    border-radius:50%;
+                    background:${asset.color};
+                    margin-right:5px;
+                "></span>
+
+                ${asset.name}
+            </td>
+
+            <td class="right">
+
+                <input
+                    class="pct"
+                    type="number"
+                    value="${asset.current}"
+                    onchange="
+                        updatePortfolio(
+                            ${index},
+                            'current',
+                            this.value
+                        )
+                    "
+                >%
+
+            </td>
+
+            <td class="right">
+
+                <input
+                    class="pct"
+                    type="number"
+                    value="${asset.target}"
+                    onchange="
+                        updatePortfolio(
+                            ${index},
+                            'target',
+                            this.value
+                        )
+                    "
+                >%
+
+            </td>
+
+            <td class="right ${
+                diff > 0
+                ? "buy"
+                : diff < 0
+                ? "sell"
+                : ""
+            }">
+
+                ${
+                    diff > 0
+                    ? "매수 "
+                    : diff < 0
+                    ? "매도 "
+                    : ""
+                }
+
+                ${diff === 0 ? "0원" : amount}
+
+            </td>
+
+        `;
+
+
+        tbody.appendChild(tr);
+
+    });
+
+
+    updateDonuts();
+
+}
+
+
+/* =========================================================
+   포트폴리오 수정
+========================================================= */
+
+function updatePortfolio(index,field,value){
+
+    portfolio[index][field] =
+        parseFloat(value) || 0;
+
+
+    calculateRebalance();
+
+}
+
+
+/* =========================================================
+   전체 데이터 갱신
+========================================================= */
+
+async function refreshAll(){
+
+    const button =
+        document.querySelector(
+            ".refresh"
+        );
+
+
+    button.innerText =
+        "⏳ 조회 중...";
+
+    button.disabled =
+        true;
+
+
+    /*
+     * VIX + 지수 + 관심종목
+     * 병렬 처리
+     */
+
+    const symbols = [
+
+        ...Object.keys(indexData),
+
+        ...Object.keys(stocks)
+
+    ];
+
+
+    const results =
+        await Promise.all(
+
+            symbols.map(
+                symbol =>
+                    fetchAsset(symbol)
+            )
+
+        );
+
+
+    results.forEach(
+        (data,index)=>{
+
+            const symbol =
+                symbols[index];
+
+
+            if(indexData[symbol]){
+
+                if(data.ok){
+
+                    indexData[symbol] = {
+
+                        name:
+                            indexData[symbol].name,
+
+                        ...data
+
+                    };
+
+                }
+
+            }else if(stocks[symbol]){
+
+                if(data.ok){
+
+                    stocks[symbol] = {
+
+                        name:
+                            stocks[symbol].name,
+
+                        ...data
+
+                    };
+
+                }
+
+            }
+
+        }
+    );
+
+
+    /*
+     * VIX 별도 조회
+     */
+
+    await fetchVIX();
+
+
+    renderVIX();
+
+    renderIndexes();
+
+    renderStocks();
+
+    renderPER();
+
+    evaluateMarket();
+
+
+    button.innerText =
+        "⚡ 갱신";
+
+    button.disabled =
+        false;
+
+}
+
+
+/* =========================================================
+   초기화
+========================================================= */
+
+window.addEventListener(
+    "load",
+    async ()=>{
+
+        loadWatchlist();
+
+        renderIndexes();
+
+        renderStocks();
+
+        renderPER();
+
+        calculateRebalance();
+
+        await refreshAll();
+
+    }
+);
+
+</script>
+
+</body>
+</html>
