@@ -1,0 +1,871 @@
+name: Update Market Data
+
+on:
+  schedule:
+    # 한국시간 평일 오후 3시
+    # UTC 06:00
+    - cron: "0 6 * * 1-5"
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+
+  update-market-data:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # -----------------------------------------
+      # Repository
+      # -----------------------------------------
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+
+      # -----------------------------------------
+      # Python
+      # -----------------------------------------
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+
+      # -----------------------------------------
+      # Install
+      # -----------------------------------------
+
+      - name: Install dependencies
+        run: |
+          pip install requests pandas
+
+
+      # -----------------------------------------
+      # Download market data
+      # -----------------------------------------
+
+      - name: Download market data
+        env:
+          PYTHONUNBUFFERED: "1"
+
+        run: |
+
+          python <<'PY'
+
+          import requests
+          import json
+          import math
+          import time
+          from datetime import datetime, timezone
+
+
+          # =====================================================
+          # 설정
+          # =====================================================
+
+          BASE_URL = "https://query1.finance.yahoo.com/v8/finance/chart/"
+
+          HEADERS = {
+              "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+              "AppleWebKit/537.36 "
+              "(KHTML, like Gecko) "
+              "Chrome/128.0 Safari/537.36"
+          }
+
+
+          # =====================================================
+          # KOSPI 200
+          #
+          # 주요 KOSPI 200 구성종목.
+          #
+          # 구성종목은 정기적으로 변경될 수 있으므로
+          # 추후 이 배열만 교체하면 됩니다.
+          # =====================================================
+
+          KOSPI200 = [
+
+              "005930.KS",
+              "000660.KS",
+              "373220.KS",
+              "207940.KS",
+              "005380.KS",
+              "000270.KS",
+              "105560.KS",
+              "055550.KS",
+              "035420.KS",
+              "000810.KS",
+              "068270.KS",
+              "006400.KS",
+              "035720.KS",
+              "012330.KS",
+              "051910.KS",
+              "028260.KS",
+              "003550.KS",
+              "034730.KS",
+              "032830.KS",
+              "086790.KS",
+              "015760.KS",
+              "009150.KS",
+              "011200.KS",
+              "010130.KS",
+              "096770.KS",
+              "017670.KS",
+              "066570.KS",
+              "030200.KS",
+              "003490.KS",
+              "010950.KS",
+              "018260.KS",
+              "036570.KS",
+              "009540.KS",
+              "329180.KS",
+              "042660.KS",
+              "010140.KS",
+              "047810.KS",
+              "161390.KS",
+              "000100.KS",
+              "139480.KS",
+              "033780.KS",
+              "011170.KS",
+              "004020.KS",
+              "001040.KS",
+              "088980.KS",
+              "003670.KS",
+              "004170.KS",
+              "009830.KS",
+              "006800.KS",
+              "001450.KS",
+              "000720.KS",
+              "004990.KS",
+              "071050.KS",
+              "028050.KS",
+              "011780.KS",
+              "001570.KS",
+              "002380.KS",
+              "000880.KS",
+              "006360.KS",
+              "010620.KS",
+              "004370.KS",
+              "005830.KS",
+              "016360.KS",
+              "078930.KS",
+              "036460.KS",
+              "012750.KS",
+              "010060.KS",
+              "011070.KS",
+              "000150.KS",
+              "035250.KS",
+              "138930.KS",
+              "024110.KS",
+              "029780.KS",
+              "000120.KS",
+              "051900.KS",
+              "000100.KS",
+              "003410.KS",
+              "000240.KS",
+              "005490.KS",
+              "006280.KS",
+              "009240.KS",
+              "001680.KS",
+              "002790.KS",
+              "001120.KS",
+              "001440.KS",
+              "004800.KS",
+              "004490.KS",
+              "008930.KS",
+              "005940.KS",
+              "000080.KS",
+              "007310.KS",
+              "014680.KS",
+              "001740.KS",
+              "010780.KS",
+              "017800.KS",
+              "272210.KS",
+              "361610.KS",
+              "402340.KS",
+              "323410.KS",
+              "377300.KS",
+              "352820.KS",
+              "259960.KS",
+              "036930.KS",
+              "012450.KS",
+              "267260.KS",
+              "042700.KS",
+              "079550.KS",
+              "003230.KS",
+              "004430.KS",
+              "001800.KS",
+              "006650.KS",
+              "009420.KS",
+              "010120.KS",
+              "000210.KS",
+              "000880.KS",
+              "006260.KS",
+              "028670.KS",
+              "003620.KS",
+              "005300.KS",
+              "004000.KS",
+              "001060.KS",
+              "003090.KS",
+              "004410.KS",
+              "007070.KS",
+              "005850.KS",
+              "007340.KS",
+              "010120.KS",
+              "011790.KS",
+              "012630.KS",
+              "016380.KS",
+              "018880.KS",
+              "021240.KS",
+              "023530.KS",
+              "025540.KS",
+              "026960.KS",
+              "028670.KS",
+              "030000.KS",
+              "031430.KS",
+              "032640.KS",
+              "034220.KS",
+              "035150.KS",
+              "036460.KS",
+              "036580.KS",
+              "039490.KS",
+              "042670.KS",
+              "051600.KS",
+              "064350.KS",
+              "078600.KS",
+              "081660.KS",
+              "082740.KS",
+              "084010.KS",
+              "086280.KS",
+              "089590.KS",
+              "093050.KS",
+              "097950.KS",
+              "103140.KS",
+              "111770.KS",
+              "114090.KS",
+              "120110.KS",
+              "128940.KS",
+              "138040.KS",
+              "139130.KS",
+              "145720.KS",
+              "161890.KS",
+              "175330.KS",
+              "180640.KS",
+              "192820.KS",
+              "241560.KS",
+              "251270.KS",
+              "271560.KS",
+              "298020.KS",
+              "302440.KS",
+              "316140.KS",
+              "336260.KS",
+              "344820.KS",
+              "381970.KS",
+              "383220.KS",
+              "403550.KS",
+              "450080.KS",
+              "454910.KS"
+
+          ]
+
+
+          # =====================================================
+          # 사용자 관심종목
+          # =====================================================
+
+          try:
+
+              with open(
+                  "watchlist.json",
+                  "r",
+                  encoding="utf-8"
+              ) as f:
+
+                  watch_config = json.load(f)
+
+          except Exception:
+
+              watch_config = {
+                  "custom": []
+              }
+
+
+          CUSTOM = watch_config.get(
+              "custom",
+              []
+          )
+
+
+          # 중복 제거
+
+          CUSTOM = list(
+              dict.fromkeys(CUSTOM)
+          )
+
+
+          # =====================================================
+          # Yahoo Finance
+          # =====================================================
+
+          session = requests.Session()
+
+          session.headers.update(
+              HEADERS
+          )
+
+
+          def get_chart(
+              symbol,
+              interval="1d",
+              range_="1y"
+          ):
+
+              url = (
+                  BASE_URL
+                  + requests.utils.quote(
+                      symbol,
+                      safe=""
+                  )
+                  + "?interval="
+                  + interval
+                  + "&range="
+                  + range_
+              )
+
+
+              try:
+
+                  response = session.get(
+                      url,
+                      timeout=20
+                  )
+
+                  response.raise_for_status()
+
+                  data = response.json()
+
+                  result = (
+                      data
+                      .get("chart", {})
+                      .get("result", [None])[0]
+                  )
+
+
+                  if not result:
+
+                      return None
+
+
+                  timestamps = (
+                      result.get(
+                          "timestamp",
+                          []
+                      )
+                  )
+
+
+                  quote = (
+                      result
+                      .get("indicators", {})
+                      .get("quote", [{}])[0]
+                  )
+
+
+                  closes = quote.get(
+                      "close",
+                      []
+                  )
+
+
+                  rows = []
+
+
+                  for ts, close in zip(
+                      timestamps,
+                      closes
+                  ):
+
+                      if close is None:
+                          continue
+
+                      rows.append({
+                          "timestamp": ts,
+                          "close": float(close)
+                      })
+
+
+                  meta = result.get(
+                      "meta",
+                      {}
+                  )
+
+
+                  price = meta.get(
+                      "regularMarketPrice"
+                  )
+
+
+                  if (
+                      price is None
+                      and rows
+                  ):
+
+                      price = rows[-1]["close"]
+
+
+                  return {
+                      "price":
+                          float(price)
+                          if price is not None
+                          else None,
+
+                      "rows": rows
+                  }
+
+
+              except Exception as e:
+
+                  print(
+                      "FETCH ERROR",
+                      symbol,
+                      str(e)
+                  )
+
+                  return None
+
+
+          # =====================================================
+          # BB
+          # =====================================================
+
+          def calculate_bb(
+              values,
+              period=20,
+              multiplier=2.5
+          ):
+
+              if len(values) < period:
+
+                  return {
+                      "middle": None,
+                      "upper": None,
+                      "lower": None
+                  }
+
+
+              arr = values[-period:]
+
+
+              mean = (
+                  sum(arr)
+                  / len(arr)
+              )
+
+
+              variance = (
+                  sum(
+                      (x - mean) ** 2
+                      for x in arr
+                  )
+                  / len(arr)
+              )
+
+
+              sd = math.sqrt(
+                  variance
+              )
+
+
+              return {
+
+                  "middle": mean,
+
+                  "upper":
+                      mean
+                      + multiplier * sd,
+
+                  "lower":
+                      mean
+                      - multiplier * sd
+              }
+
+
+          # =====================================================
+          # 종목 데이터
+          # =====================================================
+
+          def build_symbol(
+              symbol
+          ):
+
+              daily = get_chart(
+                  symbol,
+                  "1d",
+                  "1y"
+              )
+
+
+              weekly = get_chart(
+                  symbol,
+                  "1wk",
+                  "2y"
+              )
+
+
+              if not daily:
+
+                  return None
+
+
+              daily_values = [
+                  x["close"]
+                  for x in daily["rows"]
+              ]
+
+
+              weekly_values = []
+
+
+              if weekly:
+
+                  weekly_values = [
+                      x["close"]
+                      for x in weekly["rows"]
+                  ]
+
+
+              return {
+
+                  "price":
+                      daily["price"],
+
+                  "daily":
+                      calculate_bb(
+                          daily_values,
+                          20,
+                          2.5
+                      ),
+
+                  "weekly":
+                      calculate_bb(
+                          weekly_values,
+                          20,
+                          2.5
+                      )
+
+              }
+
+
+          # =====================================================
+          # VIX
+          # =====================================================
+
+          print("Downloading VIX...")
+
+
+          vix_data = get_chart(
+              "^VIX",
+              "1d",
+              "1y"
+          )
+
+
+          vix_history = []
+
+
+          vix_price = None
+
+
+          if vix_data:
+
+              vix_price = (
+                  vix_data["price"]
+              )
+
+              vix_history = [
+                  x["close"]
+                  for x in vix_data["rows"]
+              ]
+
+
+          # 최근 60 거래일
+
+          vix_history = (
+              vix_history[-60:]
+          )
+
+
+          # =====================================================
+          # 결과
+          # =====================================================
+
+          output = {
+
+              "generatedAt":
+                  datetime.now(
+                      timezone.utc
+                  ).isoformat(),
+
+              "vix": {
+
+                  "price":
+                      vix_price,
+
+                  "history":
+                      vix_history
+
+              },
+
+              "indices": {},
+
+              "stocks": {},
+
+              "kospi200": {},
+
+              "errors": []
+
+          }
+
+
+          # =====================================================
+          # 주요 지수
+          # =====================================================
+
+          INDICES = {
+
+              "^GSPC":
+                  "S&P 500",
+
+              "^NDX":
+                  "Nasdaq 100",
+
+              "^KS11":
+                  "KOSPI"
+
+          }
+
+
+          for symbol, name in INDICES.items():
+
+              print(
+                  "Downloading index:",
+                  name
+              )
+
+
+              result = build_symbol(
+                  symbol
+              )
+
+
+              if result:
+
+                  result["name"] = name
+
+                  output[
+                      "indices"
+                  ][symbol] = result
+
+              else:
+
+                  output[
+                      "errors"
+                  ].append(symbol)
+
+
+              time.sleep(0.4)
+
+
+          # =====================================================
+          # KOSPI 200
+          # =====================================================
+
+          print(
+              "Downloading KOSPI 200:",
+              len(KOSPI200),
+              "symbols"
+          )
+
+
+          for index, symbol in enumerate(
+              KOSPI200,
+              start=1
+          ):
+
+              print(
+                  f"[{index}/{len(KOSPI200)}]",
+                  symbol
+              )
+
+
+              try:
+
+                  result = build_symbol(
+                      symbol
+                  )
+
+
+                  if result:
+
+                      output[
+                          "kospi200"
+                      ][symbol] = result
+
+                  else:
+
+                      output[
+                          "errors"
+                      ].append(symbol)
+
+
+              except Exception as e:
+
+                  print(
+                      "KOSPI200 ERROR",
+                      symbol,
+                      e
+                  )
+
+                  output[
+                      "errors"
+                  ].append(symbol)
+
+
+              # API 과부하 방지
+
+              time.sleep(0.35)
+
+
+          # =====================================================
+          # 사용자 관심종목
+          # =====================================================
+
+          print(
+              "Downloading custom watchlist"
+          )
+
+
+          for symbol in CUSTOM:
+
+              # KOSPI200에 이미 있으면
+              # 다시 요청하지 않음
+
+              if symbol in output[
+                  "kospi200"
+              ]:
+
+                  output[
+                      "stocks"
+                  ][symbol] = output[
+                      "kospi200"
+                  ][symbol]
+
+                  continue
+
+
+              result = build_symbol(
+                  symbol
+              )
+
+
+              if result:
+
+                  output[
+                      "stocks"
+                  ][symbol] = result
+
+              else:
+
+                  output[
+                      "errors"
+                  ].append(symbol)
+
+
+              time.sleep(0.35)
+
+
+          # =====================================================
+          # 저장
+          # =====================================================
+
+          with open(
+              "market-data.json",
+              "w",
+              encoding="utf-8"
+          ) as f:
+
+              json.dump(
+                  output,
+                  f,
+                  ensure_ascii=False,
+                  indent=2
+              )
+
+
+          print(
+              "================================="
+          )
+
+          print(
+              "Market data update complete"
+          )
+
+          print(
+              "KOSPI200:",
+              len(
+                  output["kospi200"]
+              )
+          )
+
+          print(
+              "Custom:",
+              len(
+                  output["stocks"]
+              )
+          )
+
+          print(
+              "Errors:",
+              len(
+                  output["errors"]
+              )
+          )
+
+          print(
+              "VIX:",
+              vix_price
+          )
+
+          print(
+              "================================="
+          )
+
+          PY
+
+
+      # -----------------------------------------
+      # Commit
+      # -----------------------------------------
+
+      - name: Commit market data
+        run: |
+
+          git config user.name \
+            "github-actions[bot]"
+
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add market-data.json
+
+          git diff --cached --quiet || \
+            git commit \
+            -m "Update market data"
+
+          git push
