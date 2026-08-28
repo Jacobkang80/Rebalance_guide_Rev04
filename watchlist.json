@@ -1,8 +1,90 @@
-{  "custom": [
-    "NVDA",
-    "AAPL",
-    "005930.KS",
-    "000660.KS",
-    "007310.KS"
+{  "version": 1,
+  "updatedAt": "2026-08-28",
+  "stocks": [
+    {
+      "ticker": "005930.KS",
+      "name": "삼성전자",
+      "english": "Samsung Electronics",
+      "market": "KOSPI",
+      "kospi200": true
+    },
+    {
+      "ticker": "000660.KS",
+      "name": "SK하이닉스",
+      "english": "SK hynix",
+      "market": "KOSPI",
+      "kospi200": true
+    },
+    {
+      "ticker": "402340.KS",
+      "name": "SK스퀘어",
+      "english": "SK Square",
+      "market": "KOSPI",
+      "kospi200": true
+    },
+    {
+      "ticker": "009150.KS",
+      "name": "삼성전기",
+      "english": "Samsung Electro-Mechanics",
+      "market": "KOSPI",
+      "kospi200": true
+    },
+    {
+      "ticker": "005380.KS",
+      "name": "현대차",
+      "english": "Hyundai Motor",
+      "market": "KOSPI",
+      "kospi200": true
+    },
+    {
+      "ticker": "105560.KS",
+      "name": "KB금융",
+      "english": "KB Financial",
+      "market": "KOSPI",
+      "kospi200": true
+    },
+    {
+      "ticker": "055550.KS",
+      "name": "신한지주",
+      "english": "Shinhan Financial",
+      "market": "KOSPI",
+      "kospi200": true
+    },
+    {
+      "ticker": "012450.KS",
+      "name": "한화에어로스페이스",
+      "english": "Hanwha Aerospace",
+      "market": "KOSPI",
+      "kospi200": true
+    },
+    {
+      "ticker": "034020.KS",
+      "name": "두산에너빌리티",
+      "english": "Doosan Enerbility",
+      "market": "KOSPI",
+      "kospi200": true
+    },
+    {
+      "ticker": "028260.KS",
+      "name": "삼성물산",
+      "english": "Samsung C&T",
+      "market": "KOSPI",
+      "kospi200": true
+    },
+
+    {
+      "ticker": "NVDA",
+      "name": "엔비디아",
+      "english": "NVIDIA",
+      "market": "NASDAQ",
+      "kospi200": false
+    },
+    {
+      "ticker": "AAPL",
+      "name": "애플",
+      "english": "Apple",
+      "market": "NASDAQ",
+      "kospi200": false
+    }
   ]
-}
+
