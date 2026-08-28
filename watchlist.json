@@ -1,20 +1,8 @@
-{
-  "stocks": [
-    {
-      "symbol": "NVDA",
-      "name": "NVIDIA"
-    },
-    {
-      "symbol": "AAPL",
-      "name": "Apple"
-    },
-    {
-      "symbol": "005930.KS",
-      "name": "삼성전자"
-    },
-    {
-      "symbol": "007860.KS",
-      "name": "서연"
-    }
+{  "custom": [
+    "NVDA",
+    "AAPL",
+    "005930.KS",
+    "000660.KS",
+    "007310.KS"
   ]
 }
