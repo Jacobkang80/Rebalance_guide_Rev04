@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 1,
   "updatedAt": "2026-08-29",
   "stocks": [
     {
@@ -73,13 +73,6 @@
       "kospi200": true
     },
     {
-      "ticker": "007860.KS",
-      "name": "서연",
-      "english": "Seoyon",
-      "market": "KOSPI",
-      "kospi200": false
-    },
-    {
       "ticker": "NVDA",
       "name": "엔비디아",
       "english": "NVIDIA",
@@ -93,7 +86,5 @@
       "market": "NASDAQ",
       "kospi200": false
     }
-  ],
-  "kospi500": [],
-  "nasdaq100": []
-}}
+  ]
+}
