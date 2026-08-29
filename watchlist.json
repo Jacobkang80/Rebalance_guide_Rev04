@@ -1,0 +1,50 @@
+{
+  "version": 2,
+  "updatedAt": "2026-08-29",
+  "stocks": [
+    {
+      "ticker": "028260.KS",
+      "name": "삼성물산",
+      "english": "Samsung C&T",
+      "market": "KOSPI"
+    },
+    {
+      "ticker": "004170.KS",
+      "name": "신세계",
+      "english": "Shinsegae",
+      "market": "KOSPI"
+    },
+    {
+      "ticker": "007860.KS",
+      "name": "서연",
+      "english": "Seoyon",
+      "market": "KOSPI"
+    },
+    {
+      "ticker": "001740.KS",
+      "name": "SK네트웍스",
+      "english": "SK Networks",
+      "market": "KOSPI"
+    },
+    {
+      "ticker": "005930.KS",
+      "name": "삼성전자",
+      "english": "Samsung Electronics",
+      "market": "KOSPI"
+    }
+  ],
+  "indices": [
+    {
+      "ticker": "^GSPC",
+      "name": "S&P 500",
+      "english": "S&P 500",
+      "market": "INDEX"
+    },
+    {
+      "ticker": "^IXIC",
+      "name": "NASDAQ",
+      "english": "NASDAQ Composite",
+      "market": "INDEX"
+    }
+  ]
+}
