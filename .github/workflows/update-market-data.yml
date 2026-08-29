@@ -2,7 +2,7 @@ name: Update Market Data
 
 on:
   schedule:
-    # 평일 UTC 06:00 = 한국시간 15:00
+    # UTC 06:00 = 한국시간 15:00
     - cron: "0 6 * * 1-5"
 
   workflow_dispatch:
@@ -11,276 +11,200 @@ permissions:
   contents: write
 
 jobs:
-
   update-market-data:
-
     runs-on: ubuntu-latest
 
     steps:
-
-      # ==========================================================
-      # 1. Repository
-      # ==========================================================
-
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      # ==========================================================
-      # 2. Python
-      # ==========================================================
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-
-      # ==========================================================
-      # 3. Packages
-      # ==========================================================
+          python-version: "3.12"
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests pandas pykrx
-
-      # ==========================================================
-      # 4. Download / Generate Market Data
-      # ==========================================================
+          pip install requests
 
       - name: Update market data
-        env:
-          PYTHONUNBUFFERED: "1"
-
         run: |
-
           python <<'PY'
 
-          import os
           import json
           import math
+          import os
           import time
           import requests
-          import pandas as pd
-
-          from datetime import datetime, timezone, timedelta
+          from datetime import datetime, timezone
           from concurrent.futures import ThreadPoolExecutor, as_completed
 
-          from pykrx import stock
 
-
-          # ======================================================
+          # ============================================================
           # 기본 설정
-          # ======================================================
+          # ============================================================
 
-          YAHOO_BASE = "https://query1.finance.yahoo.com/v8/finance/chart/"
+          WATCHLIST_FILE = "watchlist.json"
+          OUTPUT_FILE = "market-data.json"
 
-          USER_AGENT = (
-              "Mozilla/5.0 (X11; Linux x86_64) "
-              "AppleWebKit/537.36 "
-              "(KHTML, like Gecko) "
-              "Chrome/126 Safari/537.36"
-          )
+          BASE_URLS = [
+              "https://query1.finance.yahoo.com/v8/finance/chart/",
+              "https://query2.finance.yahoo.com/v8/finance/chart/"
+          ]
 
           HEADERS = {
-              "User-Agent": USER_AGENT,
+              "User-Agent":
+                  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                  "AppleWebKit/537.36 (KHTML, like Gecko) "
+                  "Chrome/131.0 Safari/537.36",
               "Accept": "application/json,text/plain,*/*"
           }
 
-          SESSION = requests.Session()
-          SESSION.headers.update(HEADERS)
+
+          # ============================================================
+          # BB 설정
+          # ============================================================
+
+          BB_PERIOD = 20
+          BB_MULTIPLIER = 2.5
 
 
-          # ======================================================
-          # 파일
-          # ======================================================
+          # ============================================================
+          # Yahoo Finance
+          # ============================================================
 
-          MARKET_FILE = "market-data.json"
-          WATCH_FILE = "watchlist.json"
-
-
-          # ======================================================
-          # 사용자 지정 관심종목
-          #
-          # KOSPI TOP500 / NASDAQ100에 포함되지 않더라도
-          # 아래 종목은 항상 유지됩니다.
-          # ======================================================
-
-          CUSTOM_STOCKS = [
-
-              {
-                  "ticker": "NVDA",
-                  "name": "엔비디아",
-                  "english": "NVIDIA",
-                  "aliases": ["NVIDIA", "엔비디아"]
-              },
-
-              {
-                  "ticker": "AAPL",
-                  "name": "애플",
-                  "english": "Apple",
-                  "aliases": ["APPLE", "애플"]
-              },
-
-              {
-                  "ticker": "005930.KS",
-                  "name": "삼성전자",
-                  "english": "Samsung Electronics",
-                  "aliases": ["삼성전자", "Samsung"]
-              },
-
-              {
-                  "ticker": "000660.KS",
-                  "name": "SK하이닉스",
-                  "english": "SK hynix",
-                  "aliases": ["SK하이닉스", "하이닉스", "SK Hynix"]
-              },
-
-              {
-                  "ticker": "007860.KS",
-                  "name": "서연",
-                  "english": "Seoyon",
-                  "aliases": ["서연", "SEoyon"]
-              }
-
-          ]
+          session = requests.Session()
+          session.headers.update(HEADERS)
 
 
-          # ======================================================
-          # Yahoo Finance Chart
-          # ======================================================
+          def get_chart(symbol, interval="1d", range_="1y"):
 
-          def yahoo_chart(symbol, interval="1d", range_="1y"):
+              last_error = None
 
-              url = (
-                  YAHOO_BASE
-                  + requests.utils.quote(symbol, safe="")
-              )
+              for base in BASE_URLS:
 
-              params = {
-                  "interval": interval,
-                  "range": range_,
-                  "events": "div,splits"
-              }
+                  url = base + requests.utils.quote(
+                      symbol,
+                      safe=""
+                  )
 
-              for attempt in range(3):
+                  params = {
+                      "interval": interval,
+                      "range": range_
+                  }
 
-                  try:
+                  for attempt in range(3):
 
-                      r = SESSION.get(
-                          url,
-                          params=params,
-                          timeout=20
-                      )
+                      try:
 
-                      r.raise_for_status()
-
-                      data = r.json()
-
-                      chart = data.get("chart", {})
-
-                      result_list = chart.get("result")
-
-                      if not result_list:
-                          raise RuntimeError(
-                              f"No Yahoo result: {symbol}"
+                          response = session.get(
+                              url,
+                              params=params,
+                              timeout=20
                           )
 
-                      result = result_list[0]
-
-                      timestamps = result.get(
-                          "timestamp",
-                          []
-                      )
-
-                      quote = (
-                          result
-                          .get("indicators", {})
-                          .get("quote", [{}])[0]
-                      )
-
-                      closes = quote.get(
-                          "close",
-                          []
-                      )
-
-                      rows = []
-
-                      for ts, close in zip(
-                          timestamps,
-                          closes
-                      ):
-
-                          if close is None:
+                          if response.status_code == 429:
+                              time.sleep(2 + attempt * 3)
                               continue
 
-                          try:
+                          response.raise_for_status()
 
-                              rows.append(
-                                  {
-                                      "timestamp": int(ts),
-                                      "close": float(close)
-                                  }
+                          data = response.json()
+
+                          chart = data.get("chart", {})
+
+                          results = chart.get("result")
+
+                          if not results:
+                              raise RuntimeError(
+                                  f"No Yahoo result for {symbol}"
                               )
 
-                          except Exception:
-                              continue
+                          result = results[0]
 
-                      if len(rows) < 20:
-
-                          raise RuntimeError(
-                              f"Not enough data: {symbol}"
+                          timestamps = result.get(
+                              "timestamp",
+                              []
                           )
 
-                      meta = result.get(
-                          "meta",
-                          {}
-                      )
-
-                      price = meta.get(
-                          "regularMarketPrice"
-                      )
-
-                      if price is None:
-
-                          price = rows[-1]["close"]
-
-                      return {
-                          "price": float(price),
-                          "rows": rows
-                      }
-
-                  except Exception as e:
-
-                      if attempt == 2:
-
-                          print(
-                              "YAHOO ERROR",
-                              symbol,
-                              interval,
-                              str(e)
+                          quote = (
+                              result
+                              .get("indicators", {})
+                              .get("quote", [{}])[0]
                           )
 
-                          return None
+                          closes = quote.get(
+                              "close",
+                              []
+                          )
 
-                      time.sleep(
-                          1.5 * (attempt + 1)
-                      )
+                          rows = []
 
-              return None
+                          for ts, close in zip(
+                              timestamps,
+                              closes
+                          ):
+
+                              if close is None:
+                                  continue
+
+                              try:
+                                  rows.append({
+                                      "timestamp": int(ts),
+                                      "close": float(close)
+                                  })
+                              except Exception:
+                                  continue
+
+                          meta = result.get(
+                              "meta",
+                              {}
+                          )
+
+                          price = meta.get(
+                              "regularMarketPrice"
+                          )
+
+                          if price is None and rows:
+                              price = rows[-1]["close"]
+
+                          return {
+                              "price":
+                                  float(price)
+                                  if price is not None
+                                  else None,
+
+                              "rows": rows
+                          }
+
+                      except Exception as e:
+
+                          last_error = e
+
+                          if attempt < 2:
+                              time.sleep(
+                                  1.5 + attempt * 2
+                              )
+
+                  time.sleep(0.5)
+
+              raise RuntimeError(
+                  f"Yahoo Finance failed: {symbol}: {last_error}"
+              )
 
 
-          # ======================================================
-          # BB 2.5σ
-          # ======================================================
+          # ============================================================
+          # Bollinger Band
+          # ============================================================
 
           def calculate_bb(
               values,
-              period=20,
-              multiplier=2.5
+              period=BB_PERIOD,
+              multiplier=BB_MULTIPLIER
           ):
 
-              if not values or len(values) < period:
-
+              if len(values) < period:
                   return {
                       "middle": None,
                       "upper": None,
@@ -289,622 +213,410 @@ jobs:
 
               arr = values[-period:]
 
-              mean = (
-                  sum(arr) /
-                  len(arr)
-              )
+              mean = sum(arr) / len(arr)
 
-              variance = (
-                  sum(
-                      (x - mean) ** 2
-                      for x in arr
-                  )
-                  / len(arr)
-              )
+              variance = sum(
+                  (x - mean) ** 2
+                  for x in arr
+              ) / len(arr)
 
-              sd = math.sqrt(
-                  max(variance, 0)
-              )
+              std = math.sqrt(variance)
 
               return {
-
                   "middle": mean,
-
-                  "upper":
-                      mean +
-                      multiplier * sd,
-
-                  "lower":
-                      mean -
-                      multiplier * sd
-
+                  "upper": mean + multiplier * std,
+                  "lower": mean - multiplier * std
               }
 
 
-          # ======================================================
-          # 종목 데이터 생성
-          # ======================================================
+          # ============================================================
+          # watchlist.json 읽기
+          #
+          # 다양한 구조를 모두 허용
+          #
+          # 예:
+          #
+          # [
+          #   {
+          #     "ticker": "005930.KS",
+          #     "name": "삼성전자"
+          #   }
+          # ]
+          #
+          # 또는
+          #
+          # {
+          #   "watchlist": [...],
+          #   "kospi500": [...],
+          #   "nasdaq100": [...]
+          # }
+          # ============================================================
 
-          def build_symbol(symbol):
+          def normalize_item(item, market=""):
 
-              daily = yahoo_chart(
-                  symbol,
-                  "1d",
-                  "1y"
-              )
+              if isinstance(item, str):
 
-              weekly = yahoo_chart(
-                  symbol,
-                  "1wk",
-                  "2y"
-              )
+                  return {
+                      "ticker": item,
+                      "name": item,
+                      "nameKo": item,
+                      "nameEn": item,
+                      "market": market
+                  }
 
-              if daily is None:
-
+              if not isinstance(item, dict):
                   return None
 
-              daily_values = [
-                  x["close"]
-                  for x in daily["rows"]
-              ]
+              ticker = (
+                  item.get("ticker")
+                  or item.get("symbol")
+                  or item.get("code")
+                  or item.get("yfTicker")
+              )
 
-              weekly_values = []
+              if not ticker:
+                  return None
 
-              if weekly:
+              name_ko = (
+                  item.get("nameKo")
+                  or item.get("name_ko")
+                  or item.get("korean")
+                  or item.get("name")
+                  or ticker
+              )
 
-                  weekly_values = [
-                      x["close"]
-                      for x in weekly["rows"]
-                  ]
+              name_en = (
+                  item.get("nameEn")
+                  or item.get("name_en")
+                  or item.get("english")
+                  or item.get("name")
+                  or ticker
+              )
 
               return {
-
-                  "price":
-                      daily["price"],
-
-                  "daily":
-                      calculate_bb(
-                          daily_values,
-                          20,
-                          2.5
-                      ),
-
-                  "weekly":
-                      calculate_bb(
-                          weekly_values,
-                          20,
-                          2.5
-                      )
-
+                  "ticker": str(ticker).strip(),
+                  "name": str(
+                      item.get("name")
+                      or name_ko
+                      or name_en
+                      or ticker
+                  ),
+                  "nameKo": str(name_ko),
+                  "nameEn": str(name_en),
+                  "market": (
+                      item.get("market")
+                      or market
+                      or ""
+                  )
               }
 
 
-          # ======================================================
-          # 날짜
-          # ======================================================
+          def load_watchlist():
 
-          now = datetime.now(
-              timezone.utc
-          )
-
-          today = datetime.now().strftime(
-              "%Y%m%d"
-          )
-
-
-          # ======================================================
-          # KOSPI TOP 500
-          #
-          # pykrx를 이용하여 가장 최근 거래일의
-          # KOSPI 시가총액 상위 500개를 가져옵니다.
-          # ======================================================
-
-          print("")
-          print("=" * 70)
-          print("KOSPI TOP 500")
-          print("=" * 70)
-
-          kospi_stocks = []
-
-          try:
-
-              # 최근 영업일을 찾기 위해 최대 10일 검색
-
-              cap = None
-
-              for offset in range(10):
-
-                  d = (
-                      datetime.now()
-                      - timedelta(days=offset)
-                  ).strftime("%Y%m%d")
-
-                  try:
-
-                      temp = stock.get_market_cap_by_ticker(
-                          d,
-                          market="KOSPI"
-                      )
-
-                      if temp is not None and not temp.empty:
-
-                          cap = temp
-                          today = d
-                          break
-
-                  except Exception as e:
-
-                      print(
-                          "KRX date error",
-                          d,
-                          e
-                      )
-
-              if cap is None or cap.empty:
+              if not os.path.exists(WATCHLIST_FILE):
 
                   raise RuntimeError(
-                      "KOSPI market cap data unavailable"
+                      "watchlist.json not found"
                   )
 
-              cap = cap.sort_values(
-                  "시가총액",
-                  ascending=False
-              )
+              with open(
+                  WATCHLIST_FILE,
+                  "r",
+                  encoding="utf-8"
+              ) as f:
 
-              cap = cap.head(500)
+                  data = json.load(f)
 
-              for ticker in cap.index:
+              items = []
 
-                  ticker = str(ticker).zfill(6)
+              # --------------------------------------------------------
+              # 배열 형태
+              # --------------------------------------------------------
 
-                  try:
+              if isinstance(data, list):
 
-                      name = stock.get_market_ticker_name(
-                          ticker
+                  for item in data:
+
+                      normalized = normalize_item(
+                          item
                       )
 
-                  except Exception:
+                      if normalized:
+                          items.append(normalized)
 
-                      name = ticker
+              # --------------------------------------------------------
+              # 객체 형태
+              # --------------------------------------------------------
 
-                  kospi_stocks.append(
+              elif isinstance(data, dict):
 
-                      {
-                          "ticker":
-                              ticker + ".KS",
+                  groups = [
+                      ("watchlist", "WATCHLIST"),
+                      ("stocks", "WATCHLIST"),
+                      ("kospi500", "KOSPI500"),
+                      ("kospi_500", "KOSPI500"),
+                      ("KOSPI500", "KOSPI500"),
+                      ("nasdaq100", "NASDAQ100"),
+                      ("nasdaq_100", "NASDAQ100"),
+                      ("NASDAQ100", "NASDAQ100"),
+                      ("kospi200", "KOSPI200"),
+                      ("kospi_200", "KOSPI200"),
+                      ("KOSPI200", "KOSPI200")
+                  ]
 
-                          "name":
-                              name,
+                  found_group = False
 
-                          "english":
-                              name,
+                  for key, market in groups:
 
-                          "aliases":
-                              [
-                                  name,
-                                  ticker
-                              ],
+                      value = data.get(key)
 
-                          "market":
-                              "KOSPI",
+                      if not isinstance(value, list):
+                          continue
 
-                          "source":
-                              "KOSPI_TOP500"
+                      found_group = True
 
-                      }
+                      for item in value:
 
-                  )
+                          normalized = normalize_item(
+                              item,
+                              market
+                          )
 
-              print(
-                  "KOSPI TOP500:",
-                  len(kospi_stocks)
-              )
+                          if normalized:
+                              items.append(normalized)
 
-          except Exception as e:
+                  # 혹시 단일 stocks object인 경우
+                  if not found_group:
 
-              print(
-                  "KOSPI TOP500 ERROR:",
-                  e
-              )
+                      for key, value in data.items():
 
+                          if isinstance(value, list):
 
-          # ======================================================
-          # NASDAQ-100
-          #
-          # Nasdaq 공식 구성종목 페이지를 우선 사용하고
-          # 실패하면 Wikipedia 테이블을 사용합니다.
-          # ======================================================
+                              for item in value:
 
-          print("")
-          print("=" * 70)
-          print("NASDAQ-100")
-          print("=" * 70)
+                                  normalized = normalize_item(
+                                      item,
+                                      key
+                                  )
 
-          nasdaq_stocks = []
+                                  if normalized:
+                                      items.append(
+                                          normalized
+                                      )
 
-
-          def get_nasdaq100():
-
-              urls = [
-
-                  "https://www.nasdaq.com/solutions/nasdaq-100/companies",
-
-                  "https://en.wikipedia.org/wiki/Nasdaq-100"
-
-              ]
-
-              for url in urls:
-
-                  try:
-
-                      tables = pd.read_html(url)
-
-                      for df in tables:
-
-                          columns = [
-                              str(x).lower()
-                              for x in df.columns
-                          ]
-
-                          ticker_col = None
-                          name_col = None
-
-                          for i, col in enumerate(columns):
-
-                              if (
-                                  "symbol" in col
-                                  or
-                                  "ticker" in col
-                              ):
-
-                                  ticker_col = df.columns[i]
-
-                              if (
-                                  "company" in col
-                                  or
-                                  "name" in col
-                              ):
-
-                                  name_col = df.columns[i]
-
-                          if (
-                              ticker_col is None
-                              or
-                              name_col is None
-                          ):
-
-                              continue
-
-                          for _, row in df.iterrows():
-
-                              ticker = str(
-                                  row[ticker_col]
-                              ).strip()
-
-                              name = str(
-                                  row[name_col]
-                              ).strip()
-
-                              if (
-                                  not ticker
-                                  or ticker.lower()
-                                  in [
-                                      "nan",
-                                      "symbol",
-                                      "ticker"
-                                  ]
-                              ):
-
-                                  continue
-
-                              if (
-                                  len(ticker) > 6
-                                  or
-                                  " " in ticker
-                              ):
-
-                                  continue
-
-                              nasdaq_stocks.append(
-
-                                  {
-                                      "ticker":
-                                          ticker,
-
-                                      "name":
-                                          name,
-
-                                      "english":
-                                          name,
-
-                                      "aliases":
-                                          [
-                                              name,
-                                              ticker
-                                          ],
-
-                                      "market":
-                                          "NASDAQ",
-
-                                      "source":
-                                          "NASDAQ100"
-
-                                  }
-
-                              )
-
-                          if len(nasdaq_stocks) >= 90:
-
-                              break
-
-                      if len(nasdaq_stocks) >= 90:
-
-                          break
-
-                  except Exception as e:
-
-                      print(
-                          "NASDAQ source error:",
-                          url,
-                          e
-                      )
-
-
-              # 중복 제거
+              # --------------------------------------------------------
+              # 티커 중복 제거
+              # --------------------------------------------------------
 
               unique = {}
 
-              for x in nasdaq_stocks:
+              for item in items:
 
-                  unique[
-                      x["ticker"]
-                  ] = x
+                  ticker = item["ticker"].upper()
 
-              return list(
-                  unique.values()
+                  if ticker not in unique:
+
+                      unique[ticker] = item
+
+                  else:
+
+                      # 기존 이름이 티커뿐이면
+                      # 더 자세한 이름으로 교체
+                      old = unique[ticker]
+
+                      if (
+                          old["name"] == ticker
+                          and item["name"] != ticker
+                      ):
+
+                          unique[ticker] = item
+
+              result = list(unique.values())
+
+              print(
+                  f"Loaded {len(result)} unique symbols "
+                  f"from {WATCHLIST_FILE}"
               )
 
-
-          nasdaq_stocks = get_nasdaq100()
-
-          print(
-              "NASDAQ100:",
-              len(nasdaq_stocks)
-          )
+              return result
 
 
-          if len(nasdaq_stocks) < 90:
+          # ============================================================
+          # 종목 하나 처리
+          #
+          # 1회 요청으로 1년 일봉을 받고
+          # 주봉은 일봉에서 직접 계산
+          #
+          # 따라서 KOSPI500 + NASDAQ100을 처리할 때
+          # 불필요한 2중 API 호출을 줄임
+          # ============================================================
 
-              raise RuntimeError(
-                  "NASDAQ-100 constituent retrieval failed. "
-                  "Less than 90 constituents found."
-              )
+          def build_symbol(item):
 
-
-          # ======================================================
-          # 기존 watchlist 유지
-          # ======================================================
-
-          old_watchlist = []
-
-          if os.path.exists(WATCH_FILE):
+              ticker = item["ticker"]
 
               try:
 
-                  with open(
-                      WATCH_FILE,
-                      "r",
-                      encoding="utf-8"
-                  ) as f:
+                  daily = get_chart(
+                      ticker,
+                      "1d",
+                      "1y"
+                  )
 
-                      old = json.load(f)
+                  rows = daily["rows"]
 
-                      if isinstance(old, dict):
+                  daily_values = [
+                      x["close"]
+                      for x in rows
+                  ]
 
-                          old_watchlist = old.get(
-                              "stocks",
-                              []
-                          )
+                  # ----------------------------------------------------
+                  # 일봉 BB
+                  # ----------------------------------------------------
 
-                      elif isinstance(old, list):
+                  daily_bb = calculate_bb(
+                      daily_values
+                  )
 
-                          old_watchlist = old
+                  # ----------------------------------------------------
+                  # 주봉 데이터 생성
+                  #
+                  # timestamp를 기준으로 ISO week에 묶어서
+                  # 마지막 종가를 사용
+                  # ----------------------------------------------------
+
+                  weekly_map = {}
+
+                  for row in rows:
+
+                      dt = datetime.fromtimestamp(
+                          row["timestamp"],
+                          tz=timezone.utc
+                      )
+
+                      year, week, _ = dt.isocalendar()
+
+                      key = (
+                          year,
+                          week
+                      )
+
+                      weekly_map[key] = row["close"]
+
+                  weekly_values = list(
+                      weekly_map.values()
+                  )
+
+                  weekly_bb = calculate_bb(
+                      weekly_values
+                  )
+
+                  return {
+                      "ticker": ticker,
+                      "name": item["name"],
+                      "nameKo": item["nameKo"],
+                      "nameEn": item["nameEn"],
+                      "market": item["market"],
+
+                      "price": daily["price"],
+
+                      "daily": daily_bb,
+
+                      "weekly": weekly_bb,
+
+                      "dataPoints": len(rows)
+                  }
 
               except Exception as e:
 
                   print(
-                      "Old watchlist read error:",
-                      e
+                      f"STOCK ERROR | "
+                      f"{ticker} | {e}"
                   )
 
+                  return {
+                      "ticker": ticker,
+                      "name": item["name"],
+                      "nameKo": item["nameKo"],
+                      "nameEn": item["nameEn"],
+                      "market": item["market"],
 
-          # ======================================================
-          # Watchlist 병합
-          # ======================================================
+                      "price": None,
 
-          combined = []
+                      "daily": {
+                          "middle": None,
+                          "upper": None,
+                          "lower": None
+                      },
 
-          seen = set()
+                      "weekly": {
+                          "middle": None,
+                          "upper": None,
+                          "lower": None
+                      },
 
+                      "dataPoints": 0,
 
-          def add_watch(item):
-
-              ticker = item.get(
-                  "ticker"
-              )
-
-              if not ticker:
-
-                  return
-
-              ticker = str(
-                  ticker
-              ).strip()
-
-              if ticker in seen:
-
-                  return
-
-              seen.add(ticker)
-
-              combined.append(
-
-                  {
-                      "ticker":
-                          ticker,
-
-                      "name":
-                          item.get(
-                              "name",
-                              ticker
-                          ),
-
-                      "english":
-                          item.get(
-                              "english",
-                              item.get(
-                                  "name",
-                                  ticker
-                              )
-                          ),
-
-                      "aliases":
-                          item.get(
-                              "aliases",
-                              [
-                                  item.get(
-                                      "name",
-                                      ticker
-                                  ),
-                                  ticker
-                              ]
-                          ),
-
-                      "market":
-                          item.get(
-                              "market",
-                              "OTHER"
-                          ),
-
-                      "source":
-                          item.get(
-                              "source",
-                              "CUSTOM"
-                          )
-
+                      "error": str(e)
                   }
 
-              )
 
+          # ============================================================
+          # 주요 지수
+          # ============================================================
 
-          for item in kospi_stocks:
-              add_watch(item)
+          INDEX_LIST = [
 
-          for item in nasdaq_stocks:
-              add_watch(item)
-
-          for item in CUSTOM_STOCKS:
-              add_watch(item)
-
-          for item in old_watchlist:
-              add_watch(item)
-
-
-          # ======================================================
-          # Watchlist 저장
-          # ======================================================
-
-          watch_output = {
-
-              "generatedAt":
-                  now.isoformat(),
-
-              "counts": {
-
-                  "kospiTop500":
-                      len(kospi_stocks),
-
-                  "nasdaq100":
-                      len(nasdaq_stocks),
-
-                  "total":
-                      len(combined)
-
+              {
+                  "ticker": "^GSPC",
+                  "name": "S&P 500",
+                  "nameKo": "S&P 500",
+                  "nameEn": "S&P 500",
+                  "market": "INDEX"
               },
 
-              "stocks":
-                  combined
+              {
+                  "ticker": "^NDX",
+                  "name": "NASDAQ 100",
+                  "nameKo": "나스닥 100",
+                  "nameEn": "NASDAQ 100",
+                  "market": "INDEX"
+              },
 
-          }
+              {
+                  "ticker": "^KS11",
+                  "name": "KOSPI",
+                  "nameKo": "코스피",
+                  "nameEn": "KOSPI",
+                  "market": "INDEX"
+              },
 
-
-          with open(
-              WATCH_FILE,
-              "w",
-              encoding="utf-8"
-          ) as f:
-
-              json.dump(
-                  watch_output,
-                  f,
-                  ensure_ascii=False,
-                  indent=2
-              )
-
-
-          print(
-              "WATCHLIST TOTAL:",
-              len(combined)
-          )
-
-
-          # ======================================================
-          # 데이터 수집 대상
-          # ======================================================
-
-          symbols = [
-              x["ticker"]
-              for x in combined
+              {
+                  "ticker": "^KS200",
+                  "name": "KOSPI 200",
+                  "nameKo": "코스피 200",
+                  "nameEn": "KOSPI 200",
+                  "market": "INDEX"
+              }
           ]
 
 
-          # ======================================================
-          # 주요 지수
-          # ======================================================
-
-          INDEX_SYMBOLS = {
-
-              "^GSPC":
-                  "S&P 500",
-
-              "^NDX":
-                  "Nasdaq 100",
-
-              "^KS11":
-                  "KOSPI",
-
-              "^KS200":
-                  "KOSPI 200"
-
-          }
-
-
-          # ======================================================
+          # ============================================================
           # VIX
-          # ======================================================
+          # ============================================================
 
           print("")
           print("=" * 70)
           print("VIX")
           print("=" * 70)
 
-          vix = yahoo_chart(
-              "^VIX",
-              "1d",
-              "1y"
-          )
+          try:
 
-          if vix:
+              vix = get_chart(
+                  "^VIX",
+                  "1d",
+                  "1y"
+              )
 
               vix_history = [
                   x["close"]
@@ -912,150 +624,175 @@ jobs:
               ]
 
               vix_output = {
-
-                  "price":
-                      vix["price"],
-
-                  "history":
-                      vix_history[-60:]
-
+                  "price": vix["price"],
+                  "history": vix_history[-60:]
               }
 
-          else:
+              print(
+                  f"VIX = {vix['price']}"
+              )
+
+          except Exception as e:
+
+              print(
+                  f"VIX ERROR: {e}"
+              )
 
               vix_output = {
-
-                  "price":
-                      None,
-
-                  "history":
-                      []
-
+                  "price": None,
+                  "history": []
               }
 
 
-          # ======================================================
-          # 주요 지수 수집
-          # ======================================================
-
-          indices_output = {}
-
+          # ============================================================
+          # 주요 지수 처리
+          # ============================================================
 
           print("")
           print("=" * 70)
-          print("INDEX DATA")
+          print("MAJOR INDICES")
           print("=" * 70)
 
+          indices_output = {}
 
-          for symbol, name in INDEX_SYMBOLS.items():
+          for item in INDEX_LIST:
 
-              print(
-                  "Downloading:",
-                  name,
-                  symbol
-              )
+              ticker = item["ticker"]
 
-              data = build_symbol(
-                  symbol
-              )
+              try:
 
-              if data:
+                  result = build_symbol(
+                      item
+                  )
 
-                  indices_output[
-                      symbol
-                  ] = data
+                  indices_output[ticker] = result
+
+                  print(
+                      f"OK | {ticker} | "
+                      f"{result['price']}"
+                  )
+
+              except Exception as e:
+
+                  print(
+                      f"INDEX ERROR | "
+                      f"{ticker} | {e}"
+                  )
+
+                  indices_output[ticker] = {
+                      **item,
+                      "price": None,
+                      "daily": {
+                          "middle": None,
+                          "upper": None,
+                          "lower": None
+                      },
+                      "weekly": {
+                          "middle": None,
+                          "upper": None,
+                          "lower": None
+                      },
+                      "error": str(e)
+                  }
 
 
-          # ======================================================
-          # 종목 데이터
-          #
-          # ThreadPoolExecutor로 병렬 수집
-          # ======================================================
+          # ============================================================
+          # 관심종목 / KOSPI500 / NASDAQ100
+          # ============================================================
 
-          stocks_output = {}
-
-          total = len(symbols)
+          watchlist = load_watchlist()
 
           print("")
           print("=" * 70)
           print(
-              "STOCK DATA:",
-              total
+              f"STOCKS : {len(watchlist)} symbols"
           )
           print("=" * 70)
 
 
-          def worker(symbol):
+          stocks_output = {}
 
-              return (
-                  symbol,
-                  build_symbol(symbol)
-              )
-
-
-          completed = 0
+          # 너무 많은 동시 요청으로 Yahoo가 429를
+          # 반환하는 것을 막기 위해 4개씩 처리
+          MAX_WORKERS = 4
 
 
           with ThreadPoolExecutor(
-              max_workers=10
+              max_workers=MAX_WORKERS
           ) as executor:
 
-              futures = [
+              futures = {
                   executor.submit(
-                      worker,
-                      symbol
-                  )
-                  for symbol in symbols
-              ]
+                      build_symbol,
+                      item
+                  ): item
+                  for item in watchlist
+              }
+
+              completed = 0
 
               for future in as_completed(
                   futures
               ):
 
+                  item = futures[future]
+
                   try:
 
-                      symbol, data = future.result()
-
-                      if data:
-
-                          stocks_output[
-                              symbol
-                          ] = data
+                      result = future.result()
 
                   except Exception as e:
 
                       print(
-                          "WORKER ERROR:",
-                          e
+                          f"FATAL STOCK ERROR | "
+                          f"{item['ticker']} | {e}"
                       )
+
+                      result = {
+                          "ticker": item["ticker"],
+                          "name": item["name"],
+                          "nameKo": item["nameKo"],
+                          "nameEn": item["nameEn"],
+                          "market": item["market"],
+                          "price": None,
+                          "daily": {
+                              "middle": None,
+                              "upper": None,
+                              "lower": None
+                          },
+                          "weekly": {
+                              "middle": None,
+                              "upper": None,
+                              "lower": None
+                          },
+                          "error": str(e)
+                      }
+
+                  stocks_output[
+                      item["ticker"]
+                  ] = result
 
                   completed += 1
 
-                  if (
-                      completed % 25 == 0
-                      or
-                      completed == total
-                  ):
+                  if completed % 25 == 0:
 
                       print(
                           f"Progress: "
-                          f"{completed}/{total} "
-                          f"successful="
-                          f"{len(stocks_output)}"
+                          f"{completed}/"
+                          f"{len(watchlist)}"
                       )
 
 
-          # ======================================================
-          # 최종 market-data.json
-          # ======================================================
+          # ============================================================
+          # 최종 JSON
+          # ============================================================
 
           output = {
 
               "generatedAt":
-                  now.isoformat(),
-
-              "dataDate":
-                  today,
+                  datetime.now(
+                      timezone.utc
+                  ).isoformat(),
 
               "vix":
                   vix_output,
@@ -1066,28 +803,34 @@ jobs:
               "stocks":
                   stocks_output,
 
-              "stats": {
+              "summary": {
 
-                  "watchlist":
-                      len(combined),
+                  "totalSymbols":
+                      len(watchlist),
 
-                  "dataSuccess":
-                      len(stocks_output),
+                  "successfulSymbols":
+                      sum(
+                          1
+                          for x in stocks_output.values()
+                          if x.get("price") is not None
+                      ),
 
-                  "dataFailed":
-                      (
-                          len(combined)
-                          -
-                          len(stocks_output)
+                  "failedSymbols":
+                      sum(
+                          1
+                          for x in stocks_output.values()
+                          if x.get("price") is None
                       )
-
               }
-
           }
 
 
+          # ============================================================
+          # JSON 저장
+          # ============================================================
+
           with open(
-              MARKET_FILE,
+              OUTPUT_FILE,
               "w",
               encoding="utf-8"
           ) as f:
@@ -1100,163 +843,71 @@ jobs:
               )
 
 
-          # ======================================================
-          # 결과 출력
-          # ======================================================
-
           print("")
           print("=" * 70)
           print("UPDATE COMPLETE")
           print("=" * 70)
 
           print(
-              "KOSPI TOP500:",
-              len(kospi_stocks)
+              f"Total symbols    : "
+              f"{output['summary']['totalSymbols']}"
           )
 
           print(
-              "NASDAQ100:",
-              len(nasdaq_stocks)
+              f"Successful       : "
+              f"{output['summary']['successfulSymbols']}"
           )
 
           print(
-              "WATCHLIST:",
-              len(combined)
+              f"Failed           : "
+              f"{output['summary']['failedSymbols']}"
           )
 
           print(
-              "MARKET DATA SUCCESS:",
-              len(stocks_output)
-          )
-
-          print(
-              "MARKET DATA FAILED:",
-              len(combined)
-              -
-              len(stocks_output)
-          )
-
-          print(
-              "VIX:",
-              vix_output["price"]
-          )
-
-          print(
-              "INDEXES:",
-              len(indices_output)
-          )
-
-          print(
-              "Generated:",
-              now.isoformat()
+              f"Generated        : "
+              f"{output['generatedAt']}"
           )
 
           PY
 
-
-      # ==========================================================
-      # 5. Validate generated files
-      # ==========================================================
-
-      - name: Validate JSON
+      - name: Validate market data
         run: |
-
           python - <<'PY'
-
           import json
-          import sys
 
-          for filename in [
+          with open(
               "market-data.json",
-              "watchlist.json"
-          ]:
+              "r",
+              encoding="utf-8"
+          ) as f:
+              data = json.load(f)
 
-              with open(
-                  filename,
-                  "r",
-                  encoding="utf-8"
-              ) as f:
+          assert "generatedAt" in data
+          assert "vix" in data
+          assert "indices" in data
+          assert "stocks" in data
 
-                  data = json.load(f)
-
-              print(
-                  filename,
-                  "OK"
-              )
-
-              if filename == "market-data.json":
-
-                  print(
-                      "Stocks:",
-                      len(
-                          data.get(
-                              "stocks",
-                              {}
-                          )
-                      )
-                  )
-
-                  print(
-                      "Indexes:",
-                      len(
-                          data.get(
-                              "indices",
-                              {}
-                          )
-                      )
-                  )
-
-                  print(
-                      "VIX:",
-                      data.get(
-                          "vix",
-                          {}
-                      ).get(
-                          "price"
-                      )
-                  )
-
-              if filename == "watchlist.json":
-
-                  print(
-                      "Watchlist:",
-                      len(
-                          data.get(
-                              "stocks",
-                              []
-                          )
-                      )
-                  )
-
+          print("market-data.json validation OK")
+          print(
+              "Stocks:",
+              len(data["stocks"])
+          )
+          print(
+              "Indices:",
+              len(data["indices"])
+          )
           PY
-
-
-      # ==========================================================
-      # 6. Commit
-      # ==========================================================
 
       - name: Commit market data
         run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git config user.name \
-            "github-actions[bot]"
-
-          git config user.email \
-            "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add \
-            market-data.json \
-            watchlist.json
+          git add market-data.json
 
           if git diff --cached --quiet; then
-
-            echo "No changes to commit."
-
+            echo "No market data changes."
           else
-
-            git commit \
-              -m "Update market data"
-
+            git commit -m "Update market data"
             git push
-
           fi
