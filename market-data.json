@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T00:52:09.164564+00:00",
+  "generatedAt": "2026-08-29T01:38:13.525376+00:00",
   "vix": {
     "price": 14.43,
     "history": [
@@ -67,6 +67,11 @@
   },
   "indices": {
     "^GSPC": {
+      "ticker": "^GSPC",
+      "name": "S&P 500",
+      "nameKo": "S&P 500",
+      "nameEn": "S&P 500",
+      "market": "INDEX",
       "price": 7711.76,
       "daily": {
         "middle": 7712.582495117187,
@@ -74,12 +79,18 @@
         "lower": 7592.850637737522
       },
       "weekly": {
-        "middle": 7500.225073242187,
-        "upper": 7911.959007609578,
-        "lower": 7088.491138874796
-      }
+        "middle": 7469.978564453125,
+        "upper": 7906.917253439692,
+        "lower": 7033.0398754665575
+      },
+      "dataPoints": 251
     },
     "^NDX": {
+      "ticker": "^NDX",
+      "name": "NASDAQ 100",
+      "nameKo": "나스닥 100",
+      "nameEn": "NASDAQ 100",
+      "market": "INDEX",
       "price": 29433.428,
       "daily": {
         "middle": 29504.01005859375,
@@ -87,12 +98,18 @@
         "lower": 28686.43850649808
       },
       "weekly": {
-        "middle": 29180.44130859375,
-        "upper": 31189.795889767873,
-        "lower": 27171.086727419624
-      }
+        "middle": 29031.984765625,
+        "upper": 31440.091069202626,
+        "lower": 26623.87846204737
+      },
+      "dataPoints": 251
     },
     "^KS11": {
+      "ticker": "^KS11",
+      "name": "KOSPI",
+      "nameKo": "코스피",
+      "nameEn": "KOSPI",
+      "market": "INDEX",
       "price": 6788.88,
       "daily": {
         "middle": 6562.05703125,
@@ -100,14 +117,229 @@
         "lower": 5745.468558781234
       },
       "weekly": {
-        "middle": 7382.9620361328125,
-        "upper": 9320.846335595937,
-        "lower": 5445.0777366696875
-      }
+        "middle": 7353.114038085938,
+        "upper": 9373.718483483412,
+        "lower": 5332.509592688464
+      },
+      "dataPoints": 243
+    },
+    "^KS200": {
+      "ticker": "^KS200",
+      "name": "KOSPI 200",
+      "nameKo": "코스피 200",
+      "nameEn": "KOSPI 200",
+      "market": "INDEX",
+      "price": 1065.7,
+      "daily": {
+        "middle": 1274.2484924316407,
+        "upper": 1582.8313618459213,
+        "lower": 965.6656230173601
+      },
+      "weekly": {
+        "middle": 1087.7524993896484,
+        "upper": 1617.8339381393457,
+        "lower": 557.671060639951
+      },
+      "dataPoints": 215
     }
   },
   "stocks": {
+    "005930.KS": {
+      "ticker": "005930.KS",
+      "name": "삼성전자",
+      "nameKo": "삼성전자",
+      "nameEn": "Samsung Electronics",
+      "market": "KOSPI",
+      "price": 257000.0,
+      "daily": {
+        "middle": 254200.0,
+        "upper": 291918.94417928474,
+        "lower": 216481.05582071524
+      },
+      "weekly": {
+        "middle": 277750.0,
+        "upper": 377571.3247507766,
+        "lower": 177928.67524922342
+      },
+      "dataPoints": 243
+    },
+    "009150.KS": {
+      "ticker": "009150.KS",
+      "name": "삼성전기",
+      "nameKo": "삼성전기",
+      "nameEn": "Samsung Electro-Mechanics",
+      "market": "KOSPI",
+      "price": 1421000.0,
+      "daily": {
+        "middle": 1332900.0,
+        "upper": 1591535.7235572843,
+        "lower": 1074264.2764427157
+      },
+      "weekly": {
+        "middle": 1415750.0,
+        "upper": 2531315.6846976783,
+        "lower": 300184.3153023217
+      },
+      "dataPoints": 243
+    },
+    "000660.KS": {
+      "ticker": "000660.KS",
+      "name": "SK하이닉스",
+      "nameKo": "SK하이닉스",
+      "nameEn": "SK hynix",
+      "market": "KOSPI",
+      "price": 1653000.0,
+      "daily": {
+        "middle": 1601850.0,
+        "upper": 1860889.421469011,
+        "lower": 1342810.578530989
+      },
+      "weekly": {
+        "middle": 1872300.0,
+        "upper": 2974582.0362774674,
+        "lower": 770017.9637225326
+      },
+      "dataPoints": 243
+    },
+    "402340.KS": {
+      "ticker": "402340.KS",
+      "name": "SK스퀘어",
+      "nameKo": "SK스퀘어",
+      "nameEn": "SK Square",
+      "market": "KOSPI",
+      "price": 1028000.0,
+      "daily": {
+        "middle": 1050750.0,
+        "upper": 1211989.0984687028,
+        "lower": 889510.9015312972
+      },
+      "weekly": {
+        "middle": 1178950.0,
+        "upper": 1887522.2771002264,
+        "lower": 470377.7228997736
+      },
+      "dataPoints": 243
+    },
+    "005380.KS": {
+      "ticker": "005380.KS",
+      "name": "현대차",
+      "nameKo": "현대차",
+      "nameEn": "Hyundai Motor",
+      "market": "KOSPI",
+      "price": 399500.0,
+      "daily": {
+        "middle": 409375.0,
+        "upper": 446891.4026627021,
+        "lower": 371858.5973372979
+      },
+      "weekly": {
+        "middle": 525000.0,
+        "upper": 799710.0744421289,
+        "lower": 250289.92555787112
+      },
+      "dataPoints": 243
+    },
+    "055550.KS": {
+      "ticker": "055550.KS",
+      "name": "신한지주",
+      "nameKo": "신한지주",
+      "nameEn": "Shinhan Financial",
+      "market": "KOSPI",
+      "price": 109700.0,
+      "daily": {
+        "middle": 105390.0,
+        "upper": 111966.90086590941,
+        "lower": 98813.09913409059
+      },
+      "weekly": {
+        "middle": 102235.0,
+        "upper": 115768.58669200445,
+        "lower": 88701.41330799555
+      },
+      "dataPoints": 243
+    },
+    "012450.KS": {
+      "ticker": "012450.KS",
+      "name": "한화에어로스페이스",
+      "nameKo": "한화에어로스페이스",
+      "nameEn": "Hanwha Aerospace",
+      "market": "KOSPI",
+      "price": 1157000.0,
+      "daily": {
+        "middle": 1096250.0,
+        "upper": 1290972.358436313,
+        "lower": 901527.6415636869
+      },
+      "weekly": {
+        "middle": 1150000.0,
+        "upper": 1540835.6432056832,
+        "lower": 759164.3567943169
+      },
+      "dataPoints": 243
+    },
+    "034020.KS": {
+      "ticker": "034020.KS",
+      "name": "두산에너빌리티",
+      "nameKo": "두산에너빌리티",
+      "nameEn": "Doosan Enerbility",
+      "market": "KOSPI",
+      "price": 88200.0,
+      "daily": {
+        "middle": 77840.0,
+        "upper": 91321.09787814034,
+        "lower": 64358.90212185966
+      },
+      "weekly": {
+        "middle": 94120.0,
+        "upper": 142742.1143102601,
+        "lower": 45497.885689739895
+      },
+      "dataPoints": 243
+    },
+    "028260.KS": {
+      "ticker": "028260.KS",
+      "name": "삼성물산",
+      "nameKo": "삼성물산",
+      "nameEn": "Samsung C&T",
+      "market": "KOSPI",
+      "price": 375000.0,
+      "daily": {
+        "middle": 357400.0,
+        "upper": 406179.79858507,
+        "lower": 308620.20141493
+      },
+      "weekly": {
+        "middle": 390125.0,
+        "upper": 533012.0155708699,
+        "lower": 247237.98442913016
+      },
+      "dataPoints": 243
+    },
+    "105560.KS": {
+      "ticker": "105560.KS",
+      "name": "KB금융",
+      "nameKo": "KB금융",
+      "nameEn": "KB Financial",
+      "market": "KOSPI",
+      "price": 171600.0,
+      "daily": {
+        "middle": 168035.0,
+        "upper": 176427.80756064382,
+        "lower": 159642.19243935618
+      },
+      "weekly": {
+        "middle": 165215.0,
+        "upper": 187952.53435951224,
+        "lower": 142477.46564048776
+      },
+      "dataPoints": 243
+    },
     "NVDA": {
+      "ticker": "NVDA",
+      "name": "엔비디아",
+      "nameKo": "엔비디아",
+      "nameEn": "NVIDIA",
+      "market": "NASDAQ",
       "price": 217.55,
       "daily": {
         "middle": 218.04750137329103,
@@ -115,12 +347,18 @@
         "lower": 203.31289155883562
       },
       "weekly": {
-        "middle": 210.63900146484374,
-        "upper": 235.50153973678943,
-        "lower": 185.77646319289806
-      }
+        "middle": 209.32400131225586,
+        "upper": 232.5284987095428,
+        "lower": 186.11950391496893
+      },
+      "dataPoints": 251
     },
     "AAPL": {
+      "ticker": "AAPL",
+      "name": "애플",
+      "nameKo": "애플",
+      "nameEn": "Apple",
+      "market": "NASDAQ",
       "price": 319.7,
       "daily": {
         "middle": 309.86100006103516,
@@ -128,23 +366,16 @@
         "lower": 298.8990398764286
       },
       "weekly": {
-        "middle": 305.4200012207031,
-        "upper": 344.27125393864975,
-        "lower": 266.5687485027565
-      }
-    },
-    "005930.KS": {
-      "price": 257000.0,
-      "daily": {
-        "middle": 251700.0,
-        "upper": 297278.5722681174,
-        "lower": 206121.4277318826
+        "middle": 303.20250244140624,
+        "upper": 346.0912667959218,
+        "lower": 260.3137380868907
       },
-      "weekly": {
-        "middle": 280250.0,
-        "upper": 373934.5604942458,
-        "lower": 186565.4395057542
-      }
+      "dataPoints": 251
     }
+  },
+  "summary": {
+    "totalSymbols": 12,
+    "successfulSymbols": 12,
+    "failedSymbols": 0
   }
 }
